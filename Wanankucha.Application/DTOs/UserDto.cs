@@ -1,9 +1,5 @@
 namespace Wanankucha.Application.DTOs;
 
-/// <summary>
-/// Data Transfer Object for user information.
-/// Used to decouple handlers from infrastructure-specific user types.
-/// </summary>
 public class UserDto
 {
     public Guid Id { get; set; }

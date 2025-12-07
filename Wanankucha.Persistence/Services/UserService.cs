@@ -1,54 +1,66 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Wanankucha.Application.Abstractions;
 using Wanankucha.Application.DTOs;
 using Wanankucha.Application.Wrappers;
-using Wanankucha.Persistence.Entities;
+using Wanankucha.Domain.Entities;
+using Wanankucha.Persistence.Contexts;
 
 namespace Wanankucha.Persistence.Services;
 
-public class UserService(UserManager<AppUser> userManager) : IUserService
+public class UserService(AppDbContext context, IPasswordHasher passwordHasher) : IUserService
 {
     public async Task<ServiceResponse<Guid>> CreateUserAsync(string nameSurname, string email, string userName, string password)
     {
-        var user = new AppUser
+        var normalizedEmail = email.ToUpperInvariant();
+        if (await context.Users.AnyAsync(u => u.NormalizedEmail == normalizedEmail))
+        {
+            return new ServiceResponse<Guid>("A user with this email already exists.");
+        }
+
+        var normalizedUserName = userName.ToUpperInvariant();
+        if (await context.Users.AnyAsync(u => u.NormalizedUserName == normalizedUserName))
+        {
+            return new ServiceResponse<Guid>("A user with this username already exists.");
+        }
+
+        var user = new User
         {
             Id = Guid.NewGuid(),
             UserName = userName,
+            NormalizedUserName = normalizedUserName,
             Email = email,
-            NameSurname = nameSurname
+            NormalizedEmail = normalizedEmail,
+            NameSurname = nameSurname,
+            PasswordHash = passwordHasher.HashPassword(password)
         };
 
-        var result = await userManager.CreateAsync(user, password);
+        await context.Users.AddAsync(user);
+        await context.SaveChangesAsync();
 
-        if (result.Succeeded)
-        {
-            return new ServiceResponse<Guid>(user.Id, "User created successfully.");
-        }
-
-        var errorMessage = result.Errors.FirstOrDefault()?.Description;
-        return new ServiceResponse<Guid>(errorMessage ?? "Something went wrong while creating the user.");
+        return new ServiceResponse<Guid>(user.Id, "User created successfully.");
     }
 
     public async Task<UserDto?> FindByEmailOrUsernameAsync(string emailOrUsername)
     {
-        var user = await userManager.FindByEmailAsync(emailOrUsername)
-                   ?? await userManager.FindByNameAsync(emailOrUsername);
+        var normalized = emailOrUsername.ToUpperInvariant();
+        
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalized || u.NormalizedUserName == normalized);
 
         return user == null ? null : MapToDto(user);
     }
 
     public async Task<bool> CheckPasswordAsync(Guid userId, string password)
     {
-        var user = await userManager.FindByIdAsync(userId.ToString());
+        var user = await context.Users.FindAsync(userId);
         if (user == null) return false;
 
-        return await userManager.CheckPasswordAsync(user, password);
+        return passwordHasher.VerifyPassword(password, user.PasswordHash);
     }
 
     public async Task<IEnumerable<UserDto>> GetAllUsersAsync(int page, int size)
     {
-        var users = await userManager.Users
+        var users = await context.Users
             .Skip(page * size)
             .Take(size)
             .ToListAsync();
@@ -58,23 +70,23 @@ public class UserService(UserManager<AppUser> userManager) : IUserService
 
     public async Task UpdateRefreshTokenAsync(Guid userId, string refreshToken, DateTime endDate)
     {
-        var user = await userManager.FindByIdAsync(userId.ToString());
+        var user = await context.Users.FindAsync(userId);
         if (user == null) return;
 
         user.RefreshToken = refreshToken;
         user.RefreshTokenEndDate = endDate;
-        await userManager.UpdateAsync(user);
+        await context.SaveChangesAsync();
     }
 
     public async Task<UserDto?> FindByRefreshTokenAsync(string refreshToken)
     {
-        var user = await userManager.Users
+        var user = await context.Users
             .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
 
         return user == null ? null : MapToDto(user);
     }
 
-    private static UserDto MapToDto(AppUser user)
+    private static UserDto MapToDto(User user)
     {
         return new UserDto
         {
@@ -87,3 +99,4 @@ public class UserService(UserManager<AppUser> userManager) : IUserService
         };
     }
 }
+

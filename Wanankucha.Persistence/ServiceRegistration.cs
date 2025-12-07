@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Wanankucha.Persistence.Entities;
 using Wanankucha.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Wanankucha.Application.Abstractions;
@@ -16,16 +15,6 @@ public static class ServiceRegistration
     {
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("PostgreSQL")));
-
-        services.AddIdentity<AppUser, AppRole>(options =>
-            {
-                options.Password.RequiredLength = 3;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequireDigit = false;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireUppercase = false;
-            })
-            .AddEntityFrameworkStores<AppDbContext>();
 
         services.AddScoped(typeof(IReadRepository<>), typeof(ReadRepository<>));
         services.AddScoped(typeof(IWriteRepository<>), typeof(WriteRepository<>));

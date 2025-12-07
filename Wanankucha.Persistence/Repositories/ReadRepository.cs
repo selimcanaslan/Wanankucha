@@ -8,7 +8,6 @@ namespace Wanankucha.Persistence.Repositories;
 
 public class ReadRepository<T>(AppDbContext context) : IReadRepository<T> where T : class, IEntity, new()
 {
-    // Context.Set<T>() her seferinde yazmamak için bir property.
     public DbSet<T> Table => context.Set<T>();
 
     public IQueryable<T> GetAll(bool tracking = true)
