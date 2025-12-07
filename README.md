@@ -10,25 +10,91 @@ The solution follows Clean Architecture with the following layers:
 Wanankucha/
 ├── Wanankucha.Api/              # Presentation Layer (Controllers, Middlewares)
 ├── Wanankucha.Application/      # Application Layer (Use Cases, DTOs, Services)
-├── Wanankucha.Domain/           # Domain Layer (Entities, Repositories Interfaces)
+├── Wanankucha.Domain/           # Domain Layer (Entities, Repository Interfaces)
 ├── Wanankucha.Infrastructure/   # Infrastructure Layer (External Services)
-└── Wanankucha.Persistence/      # Persistence Layer (Database, EF Core)
+└── Wanankucha.Persistence/      # Persistence Layer (Database, EF Core, Repositories)
 ```
 
 ## 🛠️ Technologies
 
 - **.NET 8** - Framework
 - **Entity Framework Core 8** - ORM
+- **PostgreSQL** - Database
+- **MediatR** - CQRS Pattern
+- **FluentValidation** - Request Validation
 - **JWT Authentication** - Security
-- **Serilog** - Logging
+- **Serilog** - Structured Logging
 - **Swagger/OpenAPI** - API Documentation
+
+## 🏛️ Architecture Patterns
+
+### Unit of Work Pattern
+
+The project implements the Unit of Work pattern for centralized transaction management:
+
+```
+IUnitOfWork (Domain)
+    └── UnitOfWork (Persistence)
+            ├── SaveChangesAsync()
+            ├── BeginTransactionAsync()
+            ├── CommitTransactionAsync()
+            └── RollbackTransactionAsync()
+```
+
+### Repository Pattern
+
+Generic and entity-specific repositories for data access:
+
+```
+Domain/Repositories/
+├── IRepository<T>           # Base marker interface
+├── IReadRepository<T>       # Read operations (GetAll, GetWhere, GetById)
+├── IWriteRepository<T>      # Write operations (Add, Update, Remove)
+├── IUnitOfWork              # Transaction management
+└── IUserRepository          # User-specific operations
+
+Persistence/Repositories/
+├── ReadRepository<T>        # Generic read implementation
+├── WriteRepository<T>       # Generic write implementation
+└── UserRepository           # User-specific implementation
+```
+
+### CQRS with MediatR
+
+Commands and Queries are separated using MediatR:
+
+```
+Application/Features/
+├── Commands/
+│   └── AppUser/
+│       ├── CreateUser/
+│       ├── LoginUser/
+│       └── RefreshToken/
+└── Queries/
+    └── AppUser/
+        └── GetAllUsers/
+```
+
+### Validation Pipeline
+
+FluentValidation integrated as MediatR pipeline behavior for automatic request validation.
+
+## 📁 Layer Responsibilities
+
+| Layer              | Responsibility                                                         |
+| ------------------ | ---------------------------------------------------------------------- |
+| **Api**            | HTTP endpoints, request/response handling, global exception middleware |
+| **Application**    | Business logic, use cases, DTOs, service interfaces, MediatR handlers  |
+| **Domain**         | Core entities, domain logic, repository interfaces, IUnitOfWork        |
+| **Infrastructure** | Token service, password hashing (BCrypt)                               |
+| **Persistence**    | DbContext, migrations, repository implementations, UnitOfWork          |
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- A database (configure connection string in `appsettings.json`)
+- [PostgreSQL](https://www.postgresql.org/download/)
 
 ### Installation
 
@@ -63,12 +129,22 @@ Update `appsettings.json` with your configuration:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "your-connection-string"
+    "PostgreSQL": "Host=localhost;Port=5432;Database=WanankuchaDB;Username=postgres;Password=yourpassword"
   },
-  "Jwt": {
-    "Key": "your-secret-key",
+  "Token": {
+    "Audience": "your-audience",
     "Issuer": "your-issuer",
-    "Audience": "your-audience"
+    "SecurityKey": "your-256-bit-secret-key",
+    "Expiration": 15
+  },
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
+    }
   }
 }
 ```
@@ -81,19 +157,30 @@ Once the application is running, access Swagger UI at:
 https://localhost:<port>/swagger
 ```
 
-## 📁 Project Layers
+### Available Endpoints
 
-| Layer              | Responsibility                                           |
-| ------------------ | -------------------------------------------------------- |
-| **Api**            | HTTP endpoints, request/response handling, middleware    |
-| **Application**    | Business logic, use cases, DTOs, service interfaces      |
-| **Domain**         | Core entities, domain logic, repository interfaces       |
-| **Infrastructure** | External service implementations                         |
-| **Persistence**    | Database context, migrations, repository implementations |
+| Method | Endpoint                 | Description               | Auth Required |
+| ------ | ------------------------ | ------------------------- | ------------- |
+| POST   | `/api/Users`             | Create a new user         | No            |
+| GET    | `/api/Users`             | Get all users (paginated) | Yes           |
+| POST   | `/api/Auth/Login`        | User login                | No            |
+| POST   | `/api/Auth/RefreshToken` | Refresh JWT token         | No            |
 
 ## 📝 Logging
 
-The application uses Serilog for structured logging. Logs are written to the `logs/` folder.
+The application uses Serilog for structured logging:
+
+- **Console Output**: All logs at Information level and above
+- **File Output**: JSON formatted logs in `logs/` folder with daily rolling
+- **Startup Logging**: Application startup information is logged automatically
+
+## 🔐 Authentication
+
+JWT Bearer token authentication with:
+
+- Access Token (configurable expiration)
+- Refresh Token (7 days validity)
+- BCrypt password hashing
 
 ## 🤝 Contributing
 

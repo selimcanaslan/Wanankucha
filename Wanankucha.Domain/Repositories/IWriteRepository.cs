@@ -12,6 +12,4 @@ public interface IWriteRepository<T> : IRepository<T> where T : class, IEntity, 
     Task<bool> RemoveAsync(string id);
     
     bool Update(T model);
-    
-    Task<int> SaveAsync();
 }

@@ -45,7 +45,4 @@ public class WriteRepository<T>(AppDbContext context) : IWriteRepository<T>
         Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entityEntry = Table.Update(model);
         return entityEntry.State == EntityState.Modified;
     }
-
-    public async Task<int> SaveAsync()
-        => await context.SaveChangesAsync();
 }

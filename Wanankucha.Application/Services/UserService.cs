@@ -1,24 +1,34 @@
-using Microsoft.EntityFrameworkCore;
 using Wanankucha.Application.Abstractions;
 using Wanankucha.Application.DTOs;
 using Wanankucha.Application.Wrappers;
 using Wanankucha.Domain.Entities;
-using Wanankucha.Persistence.Contexts;
+using Wanankucha.Domain.Repositories;
 
-namespace Wanankucha.Persistence.Services;
+namespace Wanankucha.Application.Services;
 
-public class UserService(AppDbContext context, IPasswordHasher passwordHasher) : IUserService
+public class UserService : IUserService
 {
+    private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IPasswordHasher _passwordHasher;
+
+    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    {
+        _userRepository = userRepository;
+        _unitOfWork = unitOfWork;
+        _passwordHasher = passwordHasher;
+    }
+
     public async Task<ServiceResponse<Guid>> CreateUserAsync(string nameSurname, string email, string userName, string password)
     {
         var normalizedEmail = email.ToUpperInvariant();
-        if (await context.Users.AnyAsync(u => u.NormalizedEmail == normalizedEmail))
+        if (await _userRepository.ExistsWithEmailAsync(normalizedEmail))
         {
             return new ServiceResponse<Guid>("A user with this email already exists.");
         }
 
         var normalizedUserName = userName.ToUpperInvariant();
-        if (await context.Users.AnyAsync(u => u.NormalizedUserName == normalizedUserName))
+        if (await _userRepository.ExistsWithUsernameAsync(normalizedUserName))
         {
             return new ServiceResponse<Guid>("A user with this username already exists.");
         }
@@ -31,11 +41,11 @@ public class UserService(AppDbContext context, IPasswordHasher passwordHasher) :
             Email = email,
             NormalizedEmail = normalizedEmail,
             NameSurname = nameSurname,
-            PasswordHash = passwordHasher.HashPassword(password)
+            PasswordHash = _passwordHasher.HashPassword(password)
         };
 
-        await context.Users.AddAsync(user);
-        await context.SaveChangesAsync();
+        await _userRepository.AddAsync(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<Guid>(user.Id, "User created successfully.");
     }
@@ -44,44 +54,39 @@ public class UserService(AppDbContext context, IPasswordHasher passwordHasher) :
     {
         var normalized = emailOrUsername.ToUpperInvariant();
         
-        var user = await context.Users
-            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalized || u.NormalizedUserName == normalized);
+        var user = await _userRepository.FindByEmailOrUsernameAsync(normalized);
 
         return user == null ? null : MapToDto(user);
     }
 
     public async Task<bool> CheckPasswordAsync(Guid userId, string password)
     {
-        var user = await context.Users.FindAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return false;
 
-        return passwordHasher.VerifyPassword(password, user.PasswordHash);
+        return _passwordHasher.VerifyPassword(password, user.PasswordHash);
     }
 
     public async Task<IEnumerable<UserDto>> GetAllUsersAsync(int page, int size)
     {
-        var users = await context.Users
-            .Skip(page * size)
-            .Take(size)
-            .ToListAsync();
+        var users = await _userRepository.GetAllAsync(page, size);
 
         return users.Select(MapToDto);
     }
 
     public async Task UpdateRefreshTokenAsync(Guid userId, string refreshToken, DateTime endDate)
     {
-        var user = await context.Users.FindAsync(userId);
+        var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return;
 
         user.RefreshToken = refreshToken;
         user.RefreshTokenEndDate = endDate;
-        await context.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<UserDto?> FindByRefreshTokenAsync(string refreshToken)
     {
-        var user = await context.Users
-            .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+        var user = await _userRepository.FindByRefreshTokenAsync(refreshToken);
 
         return user == null ? null : MapToDto(user);
     }
@@ -99,4 +104,3 @@ public class UserService(AppDbContext context, IPasswordHasher passwordHasher) :
         };
     }
 }
-

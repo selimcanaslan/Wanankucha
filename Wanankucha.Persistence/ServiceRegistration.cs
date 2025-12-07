@@ -2,10 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wanankucha.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
-using Wanankucha.Application.Abstractions;
 using Wanankucha.Domain.Repositories;
 using Wanankucha.Persistence.Repositories;
-using Wanankucha.Persistence.Services;
 
 namespace Wanankucha.Persistence;
 
@@ -19,6 +17,7 @@ public static class ServiceRegistration
         services.AddScoped(typeof(IReadRepository<>), typeof(ReadRepository<>));
         services.AddScoped(typeof(IWriteRepository<>), typeof(WriteRepository<>));
         
-        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
     }
 }

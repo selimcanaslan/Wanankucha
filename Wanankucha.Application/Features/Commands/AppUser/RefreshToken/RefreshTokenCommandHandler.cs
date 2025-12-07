@@ -22,7 +22,7 @@ public class RefreshTokenCommandHandler(
 
         var token = tokenService.CreateAccessToken(user);
 
-        await userService.UpdateRefreshTokenAsync(user.Id, token.RefreshToken, token.Expiration.AddDays(7));
+        await userService.UpdateRefreshTokenAsync(user.Id, token.RefreshToken, token.Expiration.AddDays(7).AddMinutes(-15));
 
         const string message = "Tokens are refreshed successfully!";
         return new ServiceResponse<Token>(token, message);
