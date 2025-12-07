@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Wanankucha.Application\Wanankucha.Application.csproj" />
       <ProjectReference Include="..\Wanankucha.Domain\Wanankucha.Domain.csproj" />
     </ItemGroup>
 

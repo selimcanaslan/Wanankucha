@@ -37,7 +37,8 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Token:Audience"],
         ValidIssuer = builder.Configuration["Token:Issuer"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Token:SecurityKey"] ?? "1234567890123456")),
+            Encoding.UTF8.GetBytes(builder.Configuration["Token:SecurityKey"] 
+                ?? throw new InvalidOperationException("Token:SecurityKey configuration is required"))),
         ClockSkew = TimeSpan.Zero
     };
 

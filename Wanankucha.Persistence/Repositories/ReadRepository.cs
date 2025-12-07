@@ -27,27 +27,20 @@ public class ReadRepository<T>(AppDbContext context) : IReadRepository<T> where 
         return query;
     }
 
-    public async Task<T> GetSingleAsync(Expression<Func<T, bool>> method, bool tracking = true)
+    public async Task<T?> GetSingleAsync(Expression<Func<T, bool>> method, bool tracking = true)
     {
         var query = Table.AsQueryable();
         if (!tracking)
             query = query.AsNoTracking();
-        return await query.FirstOrDefaultAsync(method) ?? new T();
+        return await query.FirstOrDefaultAsync(method);
     }
 
-    public async Task<T> GetByIdAsync(string id, bool tracking = true)
+    public async Task<T?> GetByIdAsync(string id, bool tracking = true)
     {
-        // FindAsync primary key üzerinden arama yapar.
-        // Ancak tracking mekanizmasını kontrol etmek istersek query kullanmalıyız.
-        // Marker interface (IEntity) kullandığımız için x.Id diyemiyoruz, 
-        // ama query mantığıyla Reflection veya Marker pattern kullanılabilir.
-        // Pratik ve Best Practice çözüm:
-            
         var query = Table.AsQueryable();
         if(!tracking)
             query = query.AsNoTracking();
                 
-        // Not: BaseEntity<Guid> kullandığımızı varsayarak Guid.Parse yapıyoruz.
-        return await query.FirstOrDefaultAsync(data => EF.Property<Guid>(data, "Id") == Guid.Parse(id)) ?? new T();
+        return await query.FirstOrDefaultAsync(data => EF.Property<Guid>(data, "Id") == Guid.Parse(id));
     }
 }

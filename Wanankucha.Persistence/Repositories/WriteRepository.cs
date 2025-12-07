@@ -36,8 +36,6 @@ public class WriteRepository<T>(AppDbContext context) : IWriteRepository<T>
 
     public async Task<bool> RemoveAsync(string id)
     {
-        // Silinecek veriyi önce buluyoruz, sonra siliyoruz.
-        // Bu yöntem hard-delete yapar. Soft-delete (IsDeleted = true) istiyorsan Update kullanmalısın.
         T model = (await Table.FirstOrDefaultAsync(data => EF.Property<Guid>(data, "Id") == Guid.Parse(id)))!;
         return Remove(model);
     }

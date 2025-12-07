@@ -1,18 +1,16 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Mime;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Wanankucha.Application.Abstractions;
-using Wanankucha.Domain.Entities.Identity;
+using Wanankucha.Application.DTOs;
 
 namespace Wanankucha.Infrastructure.Services.Token;
 
 public class TokenService : ITokenService
 {
-    
     private readonly IConfiguration _configuration;
 
     public TokenService(IConfiguration configuration)
@@ -20,7 +18,7 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
-    public Wanankucha.Application.DTOs.Token CreateAccessToken(AppUser user)
+    public Wanankucha.Application.DTOs.Token CreateAccessToken(UserDto user)
     {
         var claims = new List<Claim>
         {
@@ -29,12 +27,11 @@ public class TokenService : ITokenService
             new Claim(ClaimTypes.Email, user.Email ?? "")
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Token:SecurityKey"]));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Token:SecurityKey"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiration = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["Token:Expiration"]));
+        var expiration = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["Token:Expiration"]!));
 
-        // 4. Token Oluşturma
         JwtSecurityToken securityToken = new(
             issuer: _configuration["Token:Issuer"],
             audience: _configuration["Token:Audience"],
