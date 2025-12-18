@@ -1,0 +1,34 @@
+@inherits LayoutComponentBase
+
+<div class="main-layout">
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span class="brand-text">Wanankucha</span>
+        </div>
+        <div class="navbar-menu">
+            <AuthorizeView>
+                <Authorized>
+                    <span class="user-greeting">Hello, @context.User.Identity?.Name</span>
+                    <button class="logout-btn" @onclick="Logout">Logout</button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </nav>
+    
+    <main class="main-content">
+        @Body
+    </main>
+</div>
+
+@code {
+    [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        ((Wanankucha.Web.Auth.JwtAuthenticationStateProvider)AuthStateProvider).NotifyAuthenticationStateChanged();
+        Navigation.NavigateTo("login", forceLoad: true);
+    }
+}

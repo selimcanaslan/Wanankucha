@@ -1,0 +1,75 @@
+@page "/"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Dashboard - Wanankucha</PageTitle>
+
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1 class="welcome-title">Welcome to Wanankucha</h1>
+        <AuthorizeView>
+            <Authorized>
+                <p class="welcome-subtitle">Hello, <strong>@context.User.Identity?.Name</strong>! You are successfully authenticated.</p>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">Authenticated</h3>
+                <p class="stat-label">Session Status</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">Secure</h3>
+                <p class="stat-label">JWT Protected</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">Active</h3>
+                <p class="stat-label">API Connection</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-section">
+        <div class="info-card">
+            <h2 class="info-title">🎉 Authentication Successful!</h2>
+            <p class="info-text">
+                Your Blazor web application is now connected to the Wanankucha API. 
+                The authentication system includes:
+            </p>
+            <ul class="feature-list">
+                <li>✅ JWT Token Authentication</li>
+                <li>✅ Automatic Token Refresh</li>
+                <li>✅ Secure Session Storage</li>
+                <li>✅ Protected Routes</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@code {
+}

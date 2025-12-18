@@ -1,17 +1,37 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Api", "Wanankucha.Api\Wanankucha.Api.csproj", "{8A0A6EC8-5978-47BB-A318-7B0BCEB8B2EF}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+
+# Solution Folders
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{188C76CA-356F-4103-87B5-3752A2E03D0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Domain", "Wanankucha.Domain\Wanankucha.Domain.csproj", "{1778A0D1-06D7-4DE4-899B-5EBA23C51738}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "web", "web", "{288C76CA-356F-4103-87B5-3752A2E03D0E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{188C76CA-356F-4103-87B5-3752A2E03D0E}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{388C76CA-356F-4103-87B5-3752A2E03D0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Persistence", "Wanankucha.Persistence\Wanankucha.Persistence.csproj", "{E36E0743-5F16-43FF-BD5C-E9821FE8D75E}"
+
+# API Projects
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Api", "api\Wanankucha.Api\Wanankucha.Api.csproj", "{8A0A6EC8-5978-47BB-A318-7B0BCEB8B2EF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Application", "Wanankucha.Application\Wanankucha.Application.csproj", "{52B5A643-24E9-4FF3-B85E-3856B70571D7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Api.Domain", "api\Wanankucha.Api.Domain\Wanankucha.Api.Domain.csproj", "{1778A0D1-06D7-4DE4-899B-5EBA23C51738}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Infrastructure", "Wanankucha.Infrastructure\Wanankucha.Infrastructure.csproj", "{C1153F35-9909-4970-B52B-331D29E258C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Api.Persistence", "api\Wanankucha.Api.Persistence\Wanankucha.Api.Persistence.csproj", "{E36E0743-5F16-43FF-BD5C-E9821FE8D75E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Api.Application", "api\Wanankucha.Api.Application\Wanankucha.Api.Application.csproj", "{52B5A643-24E9-4FF3-B85E-3856B70571D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Api.Infrastructure", "api\Wanankucha.Api.Infrastructure\Wanankucha.Api.Infrastructure.csproj", "{C1153F35-9909-4970-B52B-331D29E258C3}"
+EndProject
+
+# Shared Projects
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Shared", "shared\Wanankucha.Shared\Wanankucha.Shared.csproj", "{D1153F35-9909-4970-B52B-331D29E258C3}"
+EndProject
+
+# Web Projects
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wanankucha.Web", "web\Wanankucha.Web\Wanankucha.Web.csproj", "{E1153F35-9909-4970-B52B-331D29E258C3}"
+EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +58,14 @@ Global
 		{C1153F35-9909-4970-B52B-331D29E258C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1153F35-9909-4970-B52B-331D29E258C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1153F35-9909-4970-B52B-331D29E258C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1153F35-9909-4970-B52B-331D29E258C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1153F35-9909-4970-B52B-331D29E258C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1153F35-9909-4970-B52B-331D29E258C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1153F35-9909-4970-B52B-331D29E258C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1153F35-9909-4970-B52B-331D29E258C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1153F35-9909-4970-B52B-331D29E258C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1153F35-9909-4970-B52B-331D29E258C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1153F35-9909-4970-B52B-331D29E258C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8A0A6EC8-5978-47BB-A318-7B0BCEB8B2EF} = {188C76CA-356F-4103-87B5-3752A2E03D0E}
@@ -45,5 +73,7 @@ Global
 		{E36E0743-5F16-43FF-BD5C-E9821FE8D75E} = {188C76CA-356F-4103-87B5-3752A2E03D0E}
 		{52B5A643-24E9-4FF3-B85E-3856B70571D7} = {188C76CA-356F-4103-87B5-3752A2E03D0E}
 		{C1153F35-9909-4970-B52B-331D29E258C3} = {188C76CA-356F-4103-87B5-3752A2E03D0E}
+		{D1153F35-9909-4970-B52B-331D29E258C3} = {388C76CA-356F-4103-87B5-3752A2E03D0E}
+		{E1153F35-9909-4970-B52B-331D29E258C3} = {288C76CA-356F-4103-87B5-3752A2E03D0E}
 	EndGlobalSection
 EndGlobal
