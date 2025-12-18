@@ -1,21 +1,28 @@
 # Wanankucha
 
-A .NET 8 Web API application built with Clean Architecture principles.
+A full-stack .NET 8 application with REST API and Blazor Server web frontend, built with Clean Architecture principles.
 
 ## 🏗️ Project Structure
 
-The solution follows Clean Architecture with the following layers:
+The solution is organized into three main areas:
 
 ```
 Wanankucha/
-├── Wanankucha.Api/              # Presentation Layer (Controllers, Middlewares)
-├── Wanankucha.Application/      # Application Layer (Use Cases, DTOs, Services)
-├── Wanankucha.Domain/           # Domain Layer (Entities, Repository Interfaces)
-├── Wanankucha.Infrastructure/   # Infrastructure Layer (External Services)
-└── Wanankucha.Persistence/      # Persistence Layer (Database, EF Core, Repositories)
+├── api/                              # Backend API
+│   ├── Wanankucha.Api/              # Presentation Layer (Controllers, Middlewares)
+│   ├── Wanankucha.Api.Application/  # Application Layer (Use Cases, DTOs, Services)
+│   ├── Wanankucha.Api.Domain/       # Domain Layer (Entities, Repository Interfaces)
+│   ├── Wanankucha.Api.Infrastructure/ # Infrastructure Layer (Token, Password Services)
+│   └── Wanankucha.Api.Persistence/  # Persistence Layer (Database, EF Core)
+├── web/                              # Blazor Web Frontend
+│   └── Wanankucha.Web/              # Blazor Server Application
+└── shared/                           # Shared Libraries
+    └── Wanankucha.Shared/           # Common DTOs and Wrappers
 ```
 
 ## 🛠️ Technologies
+
+### Backend (API)
 
 - **.NET 8** - Framework
 - **Entity Framework Core 8** - ORM
@@ -26,68 +33,11 @@ Wanankucha/
 - **Serilog** - Structured Logging
 - **Swagger/OpenAPI** - API Documentation
 
-## 🏛️ Architecture Patterns
+### Frontend (Web)
 
-### Unit of Work Pattern
-
-The project implements the Unit of Work pattern for centralized transaction management:
-
-```
-IUnitOfWork (Domain)
-    └── UnitOfWork (Persistence)
-            ├── SaveChangesAsync()
-            ├── BeginTransactionAsync()
-            ├── CommitTransactionAsync()
-            └── RollbackTransactionAsync()
-```
-
-### Repository Pattern
-
-Generic and entity-specific repositories for data access:
-
-```
-Domain/Repositories/
-├── IRepository<T>           # Base marker interface
-├── IReadRepository<T>       # Read operations (GetAll, GetWhere, GetById)
-├── IWriteRepository<T>      # Write operations (Add, Update, Remove)
-├── IUnitOfWork              # Transaction management
-└── IUserRepository          # User-specific operations
-
-Persistence/Repositories/
-├── ReadRepository<T>        # Generic read implementation
-├── WriteRepository<T>       # Generic write implementation
-└── UserRepository           # User-specific implementation
-```
-
-### CQRS with MediatR
-
-Commands and Queries are separated using MediatR:
-
-```
-Application/Features/
-├── Commands/
-│   └── AppUser/
-│       ├── CreateUser/
-│       ├── LoginUser/
-│       └── RefreshToken/
-└── Queries/
-    └── AppUser/
-        └── GetAllUsers/
-```
-
-### Validation Pipeline
-
-FluentValidation integrated as MediatR pipeline behavior for automatic request validation.
-
-## 📁 Layer Responsibilities
-
-| Layer              | Responsibility                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| **Api**            | HTTP endpoints, request/response handling, global exception middleware |
-| **Application**    | Business logic, use cases, DTOs, service interfaces, MediatR handlers  |
-| **Domain**         | Core entities, domain logic, repository interfaces, IUnitOfWork        |
-| **Infrastructure** | Token service, password hashing (BCrypt)                               |
-| **Persistence**    | DbContext, migrations, repository implementations, UnitOfWork          |
+- **Blazor Server** - Interactive UI
+- **JWT Authentication** - Token-based auth
+- **ProtectedSessionStorage** - Secure token storage
 
 ## 🚀 Getting Started
 
@@ -114,17 +64,83 @@ FluentValidation integrated as MediatR pipeline behavior for automatic request v
 3. Update the database:
 
    ```bash
-   dotnet ef database update --project Wanankucha.Persistence --startup-project Wanankucha.Api
+   dotnet ef database update --project api/Wanankucha.Api.Persistence --startup-project api/Wanankucha.Api
    ```
 
-4. Run the application:
+4. Run the API:
+
    ```bash
-   dotnet run --project Wanankucha.Api
+   dotnet run --project api/Wanankucha.Api
    ```
 
-### Configuration
+5. Run the Web App (in a new terminal):
+   ```bash
+   dotnet run --project web/Wanankucha.Web
+   ```
 
-Update `appsettings.json` with your configuration:
+### Access Points
+
+| Application     | URL                              | Description       |
+| --------------- | -------------------------------- | ----------------- |
+| **API Swagger** | `https://localhost:5279/swagger` | API Documentation |
+| **Web App**     | `https://localhost:5001`         | Blazor Frontend   |
+
+## 🏛️ Architecture
+
+### Clean Architecture Layers
+
+| Layer              | Responsibility                                                         |
+| ------------------ | ---------------------------------------------------------------------- |
+| **Api**            | HTTP endpoints, request/response handling, global exception middleware |
+| **Application**    | Business logic, use cases, DTOs, service interfaces, MediatR handlers  |
+| **Domain**         | Core entities, domain logic, repository interfaces                     |
+| **Infrastructure** | Token service (JWT), password hashing (BCrypt)                         |
+| **Persistence**    | DbContext, migrations, repository implementations, UnitOfWork          |
+
+### CQRS with MediatR
+
+```
+Application/Features/
+├── Commands/
+│   └── AppUser/
+│       ├── CreateUser/    # User registration
+│       ├── LoginUser/     # Authentication
+│       └── RefreshToken/  # Token refresh
+└── Queries/
+    └── AppUser/
+        └── GetAllUsers/   # List users
+```
+
+## 📚 API Endpoints
+
+| Method | Endpoint                 | Description               | Auth |
+| ------ | ------------------------ | ------------------------- | ---- |
+| POST   | `/api/Auth/Register`     | Create new user account   | No   |
+| POST   | `/api/Auth/Login`        | User login                | No   |
+| POST   | `/api/Auth/RefreshToken` | Refresh JWT token         | No   |
+| GET    | `/api/Users`             | Get all users (paginated) | Yes  |
+
+## 🔐 Authentication Flow
+
+1. User submits credentials on login page
+2. Web app sends request to API `/api/Auth/Login`
+3. API verifies credentials and generates JWT + Refresh Token
+4. Tokens are returned and stored in `ProtectedSessionStorage`
+5. `JwtAuthenticationStateProvider` manages auth state
+6. Protected routes check `AuthorizeRouteView` for access
+
+### Security Features
+
+- **Password Hashing**: BCrypt with salt
+- **JWT Signing**: HMAC-SHA256
+- **Token Storage**: Encrypted session storage
+- **Refresh Tokens**: Stored in database, 7-day validity
+- **Role-Based Access**: Users assigned "User" role on registration
+- **CORS**: Configured for web app origin
+
+## ⚙️ Configuration
+
+### API (`api/Wanankucha.Api/appsettings.json`)
 
 ```json
 {
@@ -136,59 +152,26 @@ Update `appsettings.json` with your configuration:
     "Issuer": "your-issuer",
     "SecurityKey": "your-256-bit-secret-key",
     "Expiration": 15
-  },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Information",
-      "Override": {
-        "Microsoft": "Warning",
-        "System": "Warning"
-      }
-    }
   }
 }
 ```
 
-## 📚 API Documentation
+### Web (`web/Wanankucha.Web/appsettings.json`)
 
-Once the application is running, access Swagger UI at:
-
+```json
+{
+  "ApiSettings": {
+    "BaseUrl": "https://localhost:5279/"
+  }
+}
 ```
-https://localhost:<port>/swagger
-```
-
-### Available Endpoints
-
-| Method | Endpoint                 | Description               | Auth Required |
-| ------ | ------------------------ | ------------------------- | ------------- |
-| POST   | `/api/Users`             | Create a new user         | No            |
-| GET    | `/api/Users`             | Get all users (paginated) | Yes           |
-| POST   | `/api/Auth/Login`        | User login                | No            |
-| POST   | `/api/Auth/RefreshToken` | Refresh JWT token         | No            |
 
 ## 📝 Logging
 
-The application uses Serilog for structured logging:
+Serilog structured logging:
 
-- **Console Output**: All logs at Information level and above
-- **File Output**: JSON formatted logs in `logs/` folder with daily rolling
-- **Startup Logging**: Application startup information is logged automatically
-
-## 🔐 Authentication
-
-JWT Bearer token authentication with:
-
-- Access Token (configurable expiration)
-- Refresh Token (7 days validity)
-- BCrypt password hashing
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Console**: Information level and above
+- **File**: JSON logs in `logs/` folder with daily rolling
 
 ## 📄 License
 
