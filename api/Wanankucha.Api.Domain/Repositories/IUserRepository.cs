@@ -14,4 +14,10 @@ public interface IUserRepository
     Task<IEnumerable<User>> GetAllAsync(int page, int size, CancellationToken cancellationToken = default);
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     void Update(User user);
+    
+    // Role-related methods
+    Task<Role?> GetRoleByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task AddRoleAsync(Role role, CancellationToken cancellationToken = default);
+    Task AddUserRoleAsync(UserRole userRole, CancellationToken cancellationToken = default);
 }
+

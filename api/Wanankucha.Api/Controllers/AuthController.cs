@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Wanankucha.Api.Application.Features.Commands.AppUser.CreateUser;
 using Wanankucha.Api.Application.Features.Commands.AppUser.LoginUser;
 using Wanankucha.Api.Application.Features.Commands.AppUser.RefreshToken;
 
@@ -32,6 +33,19 @@ public class AuthController(IMediator mediator) : ControllerBase
             return Ok(response);
         }
     
+        return BadRequest(response);
+    }
+    
+    [HttpPost("Register")]
+    public async Task<IActionResult> Register(CreateUserCommandRequest request)
+    {
+        var response = await mediator.Send(request);
+
+        if (response.Succeeded)
+        {
+            return Ok(response);
+        }
+
         return BadRequest(response);
     }
 }

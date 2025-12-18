@@ -44,4 +44,15 @@ public class UserRepository : IUserRepository
 
     public void Update(User user)
         => _context.Users.Update(user);
+    
+    // Role-related methods
+    public async Task<Role?> GetRoleByNameAsync(string name, CancellationToken cancellationToken = default)
+        => await _context.Roles.FirstOrDefaultAsync(r => r.NormalizedName == name.ToUpperInvariant(), cancellationToken);
+
+    public async Task AddRoleAsync(Role role, CancellationToken cancellationToken = default)
+        => await _context.Roles.AddAsync(role, cancellationToken);
+
+    public async Task AddUserRoleAsync(UserRole userRole, CancellationToken cancellationToken = default)
+        => await _context.UserRoles.AddAsync(userRole, cancellationToken);
 }
+

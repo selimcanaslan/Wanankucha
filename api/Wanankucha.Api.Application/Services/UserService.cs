@@ -45,6 +45,29 @@ public class UserService : IUserService
         };
 
         await _userRepository.AddAsync(user, cancellationToken);
+        
+        // Get or create the default "User" role
+        var defaultRole = await _userRepository.GetRoleByNameAsync("User", cancellationToken);
+        if (defaultRole == null)
+        {
+            defaultRole = new Role
+            {
+                Id = Guid.NewGuid(),
+                Name = "User",
+                NormalizedName = "USER"
+            };
+            await _userRepository.AddRoleAsync(defaultRole, cancellationToken);
+        }
+        
+        // Assign the default role to the user
+        var userRole = new UserRole
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            RoleId = defaultRole.Id
+        };
+        await _userRepository.AddUserRoleAsync(userRole, cancellationToken);
+        
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new ServiceResponse<Guid>(user.Id, "User created successfully.");

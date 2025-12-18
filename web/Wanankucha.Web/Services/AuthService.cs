@@ -45,6 +45,27 @@ public class AuthService : IAuthService
         }
     }
 
+    public async Task<ApiResponse<Guid>> RegisterAsync(RegisterRequest request)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Auth/Register", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<Guid>>();
+                return result ?? new ApiResponse<Guid>("Invalid response from server");
+            }
+            
+            var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<Guid>>();
+            return errorResult ?? new ApiResponse<Guid>("Registration failed");
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<Guid>($"Connection error: {ex.Message}");
+        }
+    }
+
     public async Task<ApiResponse<TokenDto>> RefreshTokenAsync(string refreshToken)
     {
         try
