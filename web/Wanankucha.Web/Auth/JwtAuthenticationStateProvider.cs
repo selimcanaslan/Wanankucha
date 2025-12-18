@@ -7,24 +7,16 @@ namespace Wanankucha.Web.Auth;
 /// <summary>
 /// Custom authentication state provider using JWT tokens
 /// </summary>
-public class JwtAuthenticationStateProvider : AuthenticationStateProvider
+public class JwtAuthenticationStateProvider(
+    Services.ITokenStorageService tokenStorage,
+    Services.IAuthService authService)
+    : AuthenticationStateProvider
 {
-    private readonly Services.ITokenStorageService _tokenStorage;
-    private readonly Services.IAuthService _authService;
-
-    public JwtAuthenticationStateProvider(
-        Services.ITokenStorageService tokenStorage,
-        Services.IAuthService authService)
-    {
-        _tokenStorage = tokenStorage;
-        _authService = authService;
-    }
-
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         try
         {
-            var token = await _tokenStorage.GetTokenAsync();
+            var token = await tokenStorage.GetTokenAsync();
 
             if (token == null || string.IsNullOrEmpty(token.AccessToken))
             {
@@ -37,20 +29,20 @@ public class JwtAuthenticationStateProvider : AuthenticationStateProvider
                 // Try to refresh the token
                 if (!string.IsNullOrEmpty(token.RefreshToken))
                 {
-                    var refreshResult = await _authService.RefreshTokenAsync(token.RefreshToken);
+                    var refreshResult = await authService.RefreshTokenAsync(token.RefreshToken);
                     if (refreshResult.Succeeded && refreshResult.Data != null)
                     {
                         token = refreshResult.Data;
                     }
                     else
                     {
-                        await _tokenStorage.ClearTokenAsync();
+                        await tokenStorage.ClearTokenAsync();
                         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                     }
                 }
                 else
                 {
-                    await _tokenStorage.ClearTokenAsync();
+                    await tokenStorage.ClearTokenAsync();
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
             }
