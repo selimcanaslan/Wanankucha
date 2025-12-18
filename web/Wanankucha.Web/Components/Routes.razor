@@ -5,6 +5,11 @@
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <Authorizing>
+                    <div class="auth-loading-container">
+                        <div class="auth-loading-spinner"></div>
+                    </div>
+                </Authorizing>
                 <NotAuthorized>
                     <RedirectToLogin />
                 </NotAuthorized>
@@ -13,3 +18,5 @@
         </Found>
     </Router>
 </CascadingAuthenticationState>
+
+
