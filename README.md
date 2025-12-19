@@ -37,7 +37,10 @@ Wanankucha/
 
 - **Blazor Server** - Interactive UI
 - **JWT Authentication** - Token-based auth
-- **ProtectedSessionStorage** - Secure token storage
+- **Cookie Storage** - Secure token storage
+- **Polly** - HTTP resilience (retry, circuit breaker, timeout)
+- **Serilog** - Structured Logging
+- **Real-time Validation** - Form validation on keystroke
 
 ## 🚀 Getting Started
 
@@ -168,10 +171,22 @@ Application/Features/
 
 ## 📝 Logging
 
-Serilog structured logging:
+Serilog structured logging in both API and Web projects:
 
 - **Console**: Information level and above
-- **File**: JSON logs in `logs/` folder with daily rolling
+- **File**: JSON logs with daily rolling
+  - API: `logs/wanankucha-api-log-{date}.txt`
+  - Web: `logs/wanankucha-web-log-{date}.txt`
+
+## 🔄 HTTP Resilience (Web)
+
+The web app uses Polly for HTTP resilience:
+
+| Policy              | Configuration                                    |
+| ------------------- | ------------------------------------------------ |
+| **Timeout**         | 30 seconds default                               |
+| **Retry**           | 3 attempts with exponential backoff (2s, 4s, 8s) |
+| **Circuit Breaker** | Opens after 5 failures, 30s recovery             |
 
 ## 📄 License
 
