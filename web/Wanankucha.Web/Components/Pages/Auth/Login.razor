@@ -1,8 +1,9 @@
 @page "/login"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Wanankucha.Web.Auth
 @layout AuthLayout
 @attribute [AllowAnonymous]
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
@@ -20,10 +21,11 @@ else
             <h1 class="title">Welcome Back</h1>
             <p class="subtitle">Sign in to continue to Wanankucha</p>
         </div>
-        
-        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="login-form">
-            <DataAnnotationsValidator />
-            
+
+        <EditForm EditContext="@editContext" OnSubmit="HandleSubmit" class="login-form">
+            <DataAnnotationsValidator/>
+            <ValidationSummary />
+
             <div class="form-group">
                 <label for="email" class="form-label">Email or Username</label>
                 <div class="input-wrapper">
@@ -31,12 +33,18 @@ else
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                         <circle cx="12" cy="7" r="4"/>
                     </svg>
-                    <InputText id="email" @bind-Value="loginModel.EmailOrUserName" 
-                               class="form-input" placeholder="Enter your email or username" 
-                               disabled="@isLoading" />
+                    <input id="email" 
+                           type="text"
+                           @bind="loginModel.EmailOrUserName"
+                           @bind:event="oninput"
+                           @bind:after="ValidateEmail"
+                           class="form-input @GetFieldCssClass(nameof(loginModel.EmailOrUserName))" 
+                           placeholder="Enter your email or username"
+                           disabled="@isLoading"/>
                 </div>
+                <ValidationMessage For="@(() => loginModel.EmailOrUserName)" />
             </div>
-            
+
             <div class="form-group">
                 <label for="password" class="form-label">Password</label>
                 <div class="input-wrapper">
@@ -44,12 +52,18 @@ else
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
-                    <InputText id="password" @bind-Value="loginModel.Password" 
-                               type="password" class="form-input" placeholder="Enter your password"
-                               disabled="@isLoading" />
+                    <input id="password" 
+                           type="password"
+                           @bind="loginModel.Password"
+                           @bind:event="oninput"
+                           @bind:after="ValidatePassword"
+                           class="form-input @GetFieldCssClass(nameof(loginModel.Password))" 
+                           placeholder="Enter your password"
+                           disabled="@isLoading"/>
                 </div>
+                <ValidationMessage For="@(() => loginModel.Password)" />
             </div>
-            
+
             @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <div class="error-message">
@@ -61,7 +75,7 @@ else
                     <span>@errorMessage</span>
                 </div>
             }
-            
+
             <button type="submit" class="submit-btn" disabled="@isLoading">
                 @if (isLoading)
                 {
@@ -78,7 +92,7 @@ else
                 }
             </button>
         </EditForm>
-        
+
         <div class="card-footer">
             <p class="footer-text">Don't have an account? <a href="/register" class="footer-link">Sign up</a></p>
         </div>
@@ -87,31 +101,43 @@ else
 
 @code {
     private LoginRequest loginModel = new();
-    private bool isLoading = false;
+    private EditContext editContext = null!;
+    private bool isLoading;
     private bool isInitializing = true;
     private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(loginModel);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Check if already authenticated
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             if (authState.User.Identity?.IsAuthenticated == true)
             {
-                Navigation.NavigateTo("/", forceLoad: false);
+                Navigation.NavigateTo("/", false);
                 return;
             }
-            
+
             isInitializing = false;
             StateHasChanged();
         }
     }
 
-    private async Task HandleLogin()
+    private async Task HandleSubmit()
     {
-        isLoading = true;
         errorMessage = null;
+        
+        if (!editContext.Validate())
+        {
+            // Validation failed - ValidationSummary will display errors
+            return;
+        }
+
+        isLoading = true;
         StateHasChanged();
 
         try
@@ -120,8 +146,8 @@ else
 
             if (result.Succeeded)
             {
-                ((Wanankucha.Web.Auth.JwtAuthenticationStateProvider)AuthStateProvider).NotifyAuthenticationStateChanged();
-                Navigation.NavigateTo("/", forceLoad: false);
+                ((JwtAuthenticationStateProvider)AuthStateProvider).NotifyAuthenticationStateChanged();
+                Navigation.NavigateTo("/", false);
             }
             else
             {
@@ -139,5 +165,32 @@ else
             StateHasChanged();
         }
     }
+
+    private void ValidateEmail()
+    {
+        editContext.NotifyFieldChanged(FieldIdentifier.Create(() => loginModel.EmailOrUserName));
+    }
+
+    private void ValidatePassword()
+    {
+        editContext.NotifyFieldChanged(FieldIdentifier.Create(() => loginModel.Password));
+    }
+
+    private string GetFieldCssClass(string fieldName)
+    {
+        var field = fieldName switch
+        {
+            nameof(LoginRequest.EmailOrUserName) => FieldIdentifier.Create(() => loginModel.EmailOrUserName),
+            nameof(LoginRequest.Password) => FieldIdentifier.Create(() => loginModel.Password),
+            _ => default
+        };
+
+        var isModified = editContext.IsModified(field);
+        var isValid = !editContext.GetValidationMessages(field).Any();
+
+        if (!isModified) return string.Empty;
+        return isValid ? "valid" : "invalid";
+    }
 }
+
 

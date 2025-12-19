@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Polly.CircuitBreaker;
 using Wanankucha.Shared.DTOs;
 using Wanankucha.Shared.Wrappers;
 
@@ -7,16 +8,10 @@ namespace Wanankucha.Web.Services;
 /// <summary>
 /// Authentication service implementation
 /// </summary>
-public class AuthService : IAuthService
+public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageService tokenStorage)
+    : IAuthService
 {
-    private readonly HttpClient _httpClient;
-    private readonly ITokenStorageService _tokenStorage;
-
-    public AuthService(IHttpClientFactory httpClientFactory, ITokenStorageService tokenStorage)
-    {
-        _httpClient = httpClientFactory.CreateClient("WanankuchaApi");
-        _tokenStorage = tokenStorage;
-    }
+    private readonly HttpClient _httpClient = httpClientFactory.CreateClient("WanankuchaApi");
 
     public async Task<ApiResponse<TokenDto>> LoginAsync(LoginRequest request)
     {
@@ -28,9 +23,9 @@ public class AuthService : IAuthService
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
                 
-                if (result?.Succeeded == true && result.Data != null)
+                if (result is { Succeeded: true, Data: not null })
                 {
-                    await _tokenStorage.SetTokenAsync(result.Data);
+                    await tokenStorage.SetTokenAsync(result.Data);
                 }
                 
                 return result ?? new ApiResponse<TokenDto>("Invalid response from server");
@@ -38,6 +33,22 @@ public class AuthService : IAuthService
             
             var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
             return errorResult ?? new ApiResponse<TokenDto>("Authentication failed");
+        }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            return new ApiResponse<TokenDto>("Request timed out. Please check your connection and try again.");
+        }
+        catch (TaskCanceledException)
+        {
+            return new ApiResponse<TokenDto>("Request timed out. Please try again.");
+        }
+        catch (BrokenCircuitException)
+        {
+            return new ApiResponse<TokenDto>("Service is temporarily unavailable. Please try again in a few moments.");
+        }
+        catch (HttpRequestException ex)
+        {
+            return new ApiResponse<TokenDto>($"Network error: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -60,6 +71,22 @@ public class AuthService : IAuthService
             var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<Guid>>();
             return errorResult ?? new ApiResponse<Guid>("Registration failed");
         }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            return new ApiResponse<Guid>("Request timed out. Please check your connection and try again.");
+        }
+        catch (TaskCanceledException)
+        {
+            return new ApiResponse<Guid>("Request timed out. Please try again.");
+        }
+        catch (BrokenCircuitException)
+        {
+            return new ApiResponse<Guid>("Service is temporarily unavailable. Please try again in a few moments.");
+        }
+        catch (HttpRequestException ex)
+        {
+            return new ApiResponse<Guid>($"Network error: {ex.Message}");
+        }
         catch (Exception ex)
         {
             return new ApiResponse<Guid>($"Connection error: {ex.Message}");
@@ -79,7 +106,7 @@ public class AuthService : IAuthService
                 
                 if (result?.Succeeded == true && result.Data != null)
                 {
-                    await _tokenStorage.SetTokenAsync(result.Data);
+                    await tokenStorage.SetTokenAsync(result.Data);
                 }
                 
                 return result ?? new ApiResponse<TokenDto>("Invalid response from server");
@@ -87,6 +114,22 @@ public class AuthService : IAuthService
             
             var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
             return errorResult ?? new ApiResponse<TokenDto>("Token refresh failed");
+        }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            return new ApiResponse<TokenDto>("Request timed out. Please check your connection and try again.");
+        }
+        catch (TaskCanceledException)
+        {
+            return new ApiResponse<TokenDto>("Request timed out. Please try again.");
+        }
+        catch (BrokenCircuitException)
+        {
+            return new ApiResponse<TokenDto>("Service is temporarily unavailable. Please try again in a few moments.");
+        }
+        catch (HttpRequestException ex)
+        {
+            return new ApiResponse<TokenDto>($"Network error: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -96,6 +139,6 @@ public class AuthService : IAuthService
 
     public async Task LogoutAsync()
     {
-        await _tokenStorage.ClearTokenAsync();
+        await tokenStorage.ClearTokenAsync();
     }
 }

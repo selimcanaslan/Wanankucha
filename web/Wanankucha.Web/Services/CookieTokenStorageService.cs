@@ -6,16 +6,10 @@ namespace Wanankucha.Web.Services;
 /// <summary>
 /// Secure cookie-based token storage using ProtectedSessionStorage
 /// </summary>
-public class CookieTokenStorageService : ITokenStorageService
+public class CookieTokenStorageService(ProtectedSessionStorage sessionStorage) : ITokenStorageService
 {
     private const string TokenKey = "auth_token";
-    private readonly ProtectedSessionStorage _sessionStorage;
     private TokenDto? _cachedToken;
-
-    public CookieTokenStorageService(ProtectedSessionStorage sessionStorage)
-    {
-        _sessionStorage = sessionStorage;
-    }
 
     public async Task<TokenDto?> GetTokenAsync()
     {
@@ -24,7 +18,7 @@ public class CookieTokenStorageService : ITokenStorageService
 
         try
         {
-            var result = await _sessionStorage.GetAsync<TokenDto>(TokenKey);
+            var result = await sessionStorage.GetAsync<TokenDto>(TokenKey);
             _cachedToken = result.Success ? result.Value : null;
             return _cachedToken;
         }
@@ -37,13 +31,13 @@ public class CookieTokenStorageService : ITokenStorageService
     public async Task SetTokenAsync(TokenDto token)
     {
         _cachedToken = token;
-        await _sessionStorage.SetAsync(TokenKey, token);
+        await sessionStorage.SetAsync(TokenKey, token);
     }
 
     public async Task ClearTokenAsync()
     {
         _cachedToken = null;
-        await _sessionStorage.DeleteAsync(TokenKey);
+        await sessionStorage.DeleteAsync(TokenKey);
     }
 
     public async Task<bool> IsAuthenticatedAsync()
