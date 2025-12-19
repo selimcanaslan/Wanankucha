@@ -17,7 +17,7 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/Auth/Login", request);
+            var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/Login", request);
             
             if (response.IsSuccessStatusCode)
             {
@@ -60,7 +60,7 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/Auth/Register", request);
+            var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/Register", request);
             
             if (response.IsSuccessStatusCode)
             {
@@ -98,7 +98,7 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
         try
         {
             var request = new RefreshTokenRequest { RefreshToken = refreshToken };
-            var response = await _httpClient.PostAsJsonAsync("api/Auth/RefreshToken", request);
+            var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/RefreshToken", request);
             
             if (response.IsSuccessStatusCode)
             {

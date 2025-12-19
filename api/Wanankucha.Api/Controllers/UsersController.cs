@@ -1,13 +1,16 @@
+using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Wanankucha.Api.Application.Features.Commands.AppUser.CreateUser;
 using Wanankucha.Api.Application.Features.Queries.AppUser.GetAllUsers;
 
 namespace Wanankucha.Api.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
+[ApiVersion("1.0")]
 public class UsersController(IMediator mediator) : ControllerBase
 {
     [HttpPost]
@@ -25,10 +28,10 @@ public class UsersController(IMediator mediator) : ControllerBase
 
     [Authorize]
     [HttpGet]
+    [OutputCache(PolicyName = "Users")]
     public async Task<IActionResult> GetAllUsers([FromQuery] GetAllUsersQueryRequest request)
     {
         var response = await mediator.Send(request);
         return Ok(response);
-        
     }
 }

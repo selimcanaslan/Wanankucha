@@ -11,5 +11,10 @@ public class User : Common.BaseEntity<Guid>
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenEndDate { get; set; }
     
+    // Password Reset
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetTokenExpiry { get; set; }
+    
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
+
