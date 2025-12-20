@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using Polly.CircuitBreaker;
 using Wanankucha.Shared.DTOs;
@@ -31,8 +32,25 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
                 return result ?? new ApiResponse<TokenDto>("Invalid response from server");
             }
             
-            var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
-            return errorResult ?? new ApiResponse<TokenDto>("Authentication failed");
+            // Handle rate limiting (429) - returns plain text, not JSON
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<TokenDto>(message);
+            }
+            
+            // Try to parse JSON error response
+            try
+            {
+                var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
+                return errorResult ?? new ApiResponse<TokenDto>("Authentication failed");
+            }
+            catch
+            {
+                // Fallback for non-JSON error responses
+                var errorText = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<TokenDto>(string.IsNullOrEmpty(errorText) ? "Authentication failed" : errorText);
+            }
         }
         catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
         {
@@ -56,6 +74,7 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
         }
     }
 
+
     public async Task<ApiResponse<Guid>> RegisterAsync(RegisterRequest request)
     {
         try
@@ -68,8 +87,24 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
                 return result ?? new ApiResponse<Guid>("Invalid response from server");
             }
             
-            var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<Guid>>();
-            return errorResult ?? new ApiResponse<Guid>("Registration failed");
+            // Handle rate limiting (429) - returns plain text, not JSON
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<Guid>(message);
+            }
+            
+            // Try to parse JSON error response
+            try
+            {
+                var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<Guid>>();
+                return errorResult ?? new ApiResponse<Guid>("Registration failed");
+            }
+            catch
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<Guid>(string.IsNullOrEmpty(errorText) ? "Registration failed" : errorText);
+            }
         }
         catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
         {
@@ -92,6 +127,7 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
             return new ApiResponse<Guid>($"Connection error: {ex.Message}");
         }
     }
+
 
     public async Task<ApiResponse<TokenDto>> RefreshTokenAsync(string refreshToken)
     {

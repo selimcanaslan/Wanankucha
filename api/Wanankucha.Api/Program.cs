@@ -9,8 +9,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Wanankucha.Api.Application;
-using Wanankucha.Api.Jobs;
 using Wanankucha.Api.Infrastructure;
+using Wanankucha.Api.Jobs;
+using Wanankucha.Api.Middlewares;
 using Wanankucha.Api.Persistence;
 
 Log.Logger = new LoggerConfiguration()
@@ -23,7 +24,7 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((context, configuration) => 
+    builder.Host.UseSerilog((context, configuration) =>
         configuration.ReadFrom.Configuration(context.Configuration));
 
     builder.Services.AddApplicationServices();
@@ -72,7 +73,7 @@ try
     builder.Services.AddRateLimiter(options =>
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        
+
         options.AddFixedWindowLimiter("auth", config =>
         {
             config.PermitLimit = 5;
@@ -83,7 +84,7 @@ try
 
         options.OnRejected = async (context, cancellationToken) =>
         {
-            Log.Warning("Rate limit exceeded for {Path} from {IP}", 
+            Log.Warning("Rate limit exceeded for {Path} from {IP}",
                 context.HttpContext.Request.Path,
                 context.HttpContext.Connection.RemoteIpAddress);
 
@@ -97,19 +98,19 @@ try
     // API Versioning
     // ========================
     builder.Services.AddApiVersioning(options =>
-    {
-        options.DefaultApiVersion = new ApiVersion(1, 0);
-        options.AssumeDefaultVersionWhenUnspecified = true;
-        options.ReportApiVersions = true;
-        options.ApiVersionReader = ApiVersionReader.Combine(
-            new UrlSegmentApiVersionReader(),
-            new HeaderApiVersionReader("X-Api-Version"));
-    })
-    .AddApiExplorer(options =>
-    {
-        options.GroupNameFormat = "'v'VVV";
-        options.SubstituteApiVersionInUrl = true;
-    });
+        {
+            options.DefaultApiVersion = new ApiVersion(1, 0);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = ApiVersionReader.Combine(
+                new UrlSegmentApiVersionReader(),
+                new HeaderApiVersionReader("X-Api-Version"));
+        })
+        .AddApiExplorer(options =>
+        {
+            options.GroupNameFormat = "'v'VVV";
+            options.SubstituteApiVersionInUrl = true;
+        });
 
     // CORS for Blazor web app
     builder.Services.AddCors(options =>
@@ -117,45 +118,46 @@ try
         options.AddPolicy("BlazorWebApp", policy =>
         {
             policy.WithOrigins("https://localhost:5001", "http://localhost:5279")
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials();
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials();
         });
     });
 
     builder.Services.AddAuthorization();
 
     builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateAudience = true,
-            ValidateIssuer = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidAudience = builder.Configuration["Token:Audience"],
-            ValidIssuer = builder.Configuration["Token:Issuer"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Token:SecurityKey"] 
-                    ?? throw new InvalidOperationException("Token:SecurityKey configuration is required"))),
-            ClockSkew = TimeSpan.Zero
-        };
-
-        options.Events = new JwtBearerEvents
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
         {
-            OnAuthenticationFailed = ctx =>
+            options.TokenValidationParameters = new TokenValidationParameters
             {
-                Log.Warning("JWT authentication failed: {Message}", ctx.Exception?.Message);
-                return Task.CompletedTask;
-            },
-            OnMessageReceived = ctx => Task.CompletedTask
-        };
-    });
+                ValidateAudience = true,
+                ValidateIssuer = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidAudience = builder.Configuration["Token:Audience"],
+                ValidIssuer = builder.Configuration["Token:Issuer"],
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Token:SecurityKey"]
+                                           ?? throw new InvalidOperationException(
+                                               "Token:SecurityKey configuration is required"))),
+                ClockSkew = TimeSpan.Zero
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = ctx =>
+                {
+                    Log.Warning("JWT authentication failed: {Message}", ctx.Exception?.Message);
+                    return Task.CompletedTask;
+                },
+                OnMessageReceived = ctx => Task.CompletedTask
+            };
+        });
 
     builder.Services.AddSwaggerGen(c =>
     {
@@ -184,7 +186,7 @@ try
 
     var app = builder.Build();
 
-    app.UseMiddleware<Wanankucha.Api.Middlewares.GlobalExceptionHandlerMiddleware>();
+    app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
     if (app.Environment.IsDevelopment())
     {
@@ -206,13 +208,13 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
-    
+
     // Health check endpoint
     app.MapHealthChecks("/health");
-    
+
     // Hangfire dashboard
     app.MapHangfireDashboard("/hangfire");
-    
+
     // Register recurring jobs
     RecurringJob.AddOrUpdate<CleanupExpiredTokensJob>(
         "cleanup-expired-tokens",
