@@ -15,6 +15,10 @@ public class User : Common.BaseEntity<Guid>
     public string? PasswordResetToken { get; set; }
     public DateTime? PasswordResetTokenExpiry { get; set; }
     
+    // Account Lockout
+    public int FailedLoginAttempts { get; set; }
+    public DateTime? LockoutEnd { get; set; }
+    public bool LockoutEnabled { get; set; } = true;
+    
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
-

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Wanankucha.Api.Application.Abstractions;
 using Wanankucha.Api.Application.DTOs;
+using Wanankucha.Api.Domain.Entities;
 using Wanankucha.Api.Infrastructure.Options;
 
 namespace Wanankucha.Api.Infrastructure.Services.Token;
@@ -19,7 +20,7 @@ public class TokenService : ITokenService
         _jwtOptions = jwtOptions.Value;
     }
 
-    public Wanankucha.Api.Application.DTOs.Token CreateAccessToken(UserDto user)
+    public Application.DTOs.Token CreateAccessToken(User user)
     {
         var claims = new List<Claim>
         {
@@ -44,7 +45,7 @@ public class TokenService : ITokenService
         JwtSecurityTokenHandler handler = new();
         string tokenString = handler.WriteToken(securityToken);
 
-        return new Wanankucha.Api.Application.DTOs.Token
+        return new Application.DTOs.Token
         {
             AccessToken = tokenString,
             Expiration = expiration,

@@ -10,8 +10,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.HasKey(e => e.Id);
         
+        // Unique indexes for authentication
         builder.HasIndex(e => e.NormalizedEmail).IsUnique();
         builder.HasIndex(e => e.NormalizedUserName).IsUnique();
+        
+        // Non-unique indexes for token lookups
+        builder.HasIndex(e => e.RefreshToken);
+        builder.HasIndex(e => e.PasswordResetToken);
         
         builder.Property(e => e.UserName).HasMaxLength(256);
         builder.Property(e => e.Email).HasMaxLength(256);
