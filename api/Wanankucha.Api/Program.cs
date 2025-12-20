@@ -205,6 +205,29 @@ try
 
     var app = builder.Build();
 
+    // ========================
+    // Startup Database Check (fail fast if DB unreachable)
+    // ========================
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<Wanankucha.Api.Persistence.Contexts.AppDbContext>();
+        try
+        {
+            Log.Information("Checking database connectivity...");
+            var canConnect = await dbContext.Database.CanConnectAsync();
+            if (!canConnect)
+            {
+                throw new Exception("Cannot connect to PostgreSQL database. Please ensure the database is running.");
+            }
+            Log.Information("Database connection verified successfully");
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Database connection failed. Please ensure PostgreSQL is running.");
+            throw;
+        }
+    }
+
     app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
     // Response Compression middleware (before static files)
