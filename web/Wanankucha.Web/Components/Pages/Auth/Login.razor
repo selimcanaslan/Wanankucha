@@ -64,6 +64,10 @@ else
                 <ValidationMessage For="@(() => loginModel.Password)" />
             </div>
 
+            <div class="forgot-password-row">
+                <a href="/forgot-password" class="forgot-password-link">Forgot Password?</a>
+            </div>
+
             @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <div class="error-message">
@@ -74,6 +78,19 @@ else
                     </svg>
                     <span>@errorMessage</span>
                 </div>
+                
+                @if (failedAttempts >= 2 || isAccountLocked)
+                {
+                    <div class="reset-suggestion">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <div>
+                            <strong>Having trouble signing in?</strong>
+                            <p>You can <a href="/forgot-password">reset your password</a> to regain access to your account.</p>
+                        </div>
+                    </div>
+                }
             }
 
             <button type="submit" class="submit-btn" disabled="@isLoading">
@@ -105,6 +122,8 @@ else
     private bool isLoading;
     private bool isInitializing = true;
     private string? errorMessage;
+    private int failedAttempts;
+    private bool isAccountLocked;
 
     protected override void OnInitialized()
     {
@@ -146,17 +165,28 @@ else
 
             if (result.Succeeded)
             {
+                // Reset on success
+                failedAttempts = 0;
+                isAccountLocked = false;
                 ((JwtAuthenticationStateProvider)AuthStateProvider).NotifyAuthenticationStateChanged();
                 Navigation.NavigateTo("/", false);
             }
             else
             {
                 errorMessage = result.Message ?? "Login failed. Please try again.";
+                failedAttempts++;
+                
+                // Detect if account is locked from the error message
+                if (errorMessage.Contains("locked", StringComparison.OrdinalIgnoreCase))
+                {
+                    isAccountLocked = true;
+                }
             }
         }
         catch (Exception ex)
         {
             errorMessage = "An error occurred. Please try again.";
+            failedAttempts++;
             Console.WriteLine($"Login error: {ex.Message}");
         }
         finally
@@ -192,5 +222,6 @@ else
         return isValid ? "valid" : "invalid";
     }
 }
+
 
 
