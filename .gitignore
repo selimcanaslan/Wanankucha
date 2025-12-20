@@ -52,3 +52,5 @@ logs/
 # Sensitive files
 appsettings.Development.json
 *.local.json
+.env
+!.env.example
