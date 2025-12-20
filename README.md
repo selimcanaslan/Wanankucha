@@ -4,15 +4,13 @@ A full-stack .NET 8 application with REST API and Blazor Server web frontend, bu
 
 ## 🏗️ Project Structure
 
-The solution is organized into three main areas:
-
 ```
 Wanankucha/
 ├── api/                              # Backend API
 │   ├── Wanankucha.Api/              # Presentation Layer (Controllers, Middlewares)
 │   ├── Wanankucha.Api.Application/  # Application Layer (Use Cases, DTOs, Services)
 │   ├── Wanankucha.Api.Domain/       # Domain Layer (Entities, Repository Interfaces)
-│   ├── Wanankucha.Api.Infrastructure/ # Infrastructure Layer (Token, Password Services)
+│   ├── Wanankucha.Api.Infrastructure/ # Infrastructure Layer (Token, Email, Password Services)
 │   └── Wanankucha.Api.Persistence/  # Persistence Layer (Database, EF Core)
 ├── web/                              # Blazor Web Frontend
 │   └── Wanankucha.Web/              # Blazor Server Application
@@ -25,11 +23,12 @@ Wanankucha/
 ### Backend (API)
 
 - **.NET 8** - Framework
-- **Entity Framework Core 8** - ORM
+- **Entity Framework Core 8** - ORM with resilient connections
 - **PostgreSQL** - Database
 - **MediatR** - CQRS Pattern
 - **FluentValidation** - Request Validation
-- **JWT Authentication** - Security
+- **JWT Authentication** - Security with refresh token rotation
+- **Hangfire** - Background job processing
 - **Serilog** - Structured Logging
 - **Swagger/OpenAPI** - API Documentation
 
@@ -42,132 +41,160 @@ Wanankucha/
 - **Serilog** - Structured Logging
 - **Real-time Validation** - Form validation on keystroke
 
+## ✨ Features
+
+### Security
+
+- **Account Lockout** - Locks account after 5 failed login attempts (15 min)
+- **Refresh Token Rotation** - New token generated on each refresh
+- **Password Reset Flow** - Email-based password reset with secure tokens
+- **Rate Limiting** - Protects against brute-force attacks
+- **HSTS** - Strict Transport Security in production
+- **Secure Hangfire** - Dashboard restricted to localhost in production
+- **CORS Tightening** - Explicit allowed methods and headers
+
+### Performance
+
+- **Response Compression** - Brotli + Gzip compression
+- **Database Indexes** - Optimized token lookups
+- **Output Caching** - Configurable response caching
+- **Connection Resilience** - Auto-retry for transient DB failures
+
+### Reliability
+
+- **Health Checks** - `/health` endpoint for monitoring
+- **Background Jobs** - Hangfire for async processing (token cleanup)
+- **Startup DB Check** - Fail-fast if database unavailable
+- **HTTP Resilience** - Retry, circuit breaker, timeout policies
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [PostgreSQL](https://www.postgresql.org/download/)
+- [PostgreSQL](https://www.postgresql.org/download/) (or Docker)
 
-### Installation
+### Configuration
 
-1. Clone the repository:
+1. **Clone and restore:**
 
    ```bash
    git clone <repository-url>
    cd Wanankucha
-   ```
-
-2. Restore dependencies:
-
-   ```bash
    dotnet restore
    ```
 
-3. Update the database:
+2. **Set up secrets (Development):**
+
+   ```bash
+   cd api/Wanankucha.Api
+   dotnet user-secrets init
+   dotnet user-secrets set "ConnectionStrings:PostgreSQL" "Host=localhost;Port=5432;Database=WanankuchaDB;Username=postgres;Password=YOUR_PASSWORD"
+   dotnet user-secrets set "Token:SecurityKey" "YOUR_64_CHARACTER_MINIMUM_SECRET_KEY"
+   dotnet user-secrets set "Smtp:Username" "your-email@gmail.com"
+   dotnet user-secrets set "Smtp:Password" "your-app-password"
+   ```
+
+3. **Update database:**
 
    ```bash
    dotnet ef database update --project api/Wanankucha.Api.Persistence --startup-project api/Wanankucha.Api
    ```
 
-4. Run the API:
+4. **Run the applications:**
 
    ```bash
+   # Terminal 1 - API
    dotnet run --project api/Wanankucha.Api
-   ```
 
-5. Run the Web App (in a new terminal):
-   ```bash
+   # Terminal 2 - Web
    dotnet run --project web/Wanankucha.Web
    ```
 
 ### Access Points
 
-| Application     | URL                              | Description       |
-| --------------- | -------------------------------- | ----------------- |
-| **API Swagger** | `https://localhost:5279/swagger` | API Documentation |
-| **Web App**     | `https://localhost:5001`         | Blazor Frontend   |
-
-## 🏛️ Architecture
-
-### Clean Architecture Layers
-
-| Layer              | Responsibility                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| **Api**            | HTTP endpoints, request/response handling, global exception middleware |
-| **Application**    | Business logic, use cases, DTOs, service interfaces, MediatR handlers  |
-| **Domain**         | Core entities, domain logic, repository interfaces                     |
-| **Infrastructure** | Token service (JWT), password hashing (BCrypt)                         |
-| **Persistence**    | DbContext, migrations, repository implementations, UnitOfWork          |
-
-### CQRS with MediatR
-
-```
-Application/Features/
-├── Commands/
-│   └── AppUser/
-│       ├── CreateUser/    # User registration
-│       ├── LoginUser/     # Authentication
-│       └── RefreshToken/  # Token refresh
-└── Queries/
-    └── AppUser/
-        └── GetAllUsers/   # List users
-```
+| Application      | URL                               | Description          |
+| ---------------- | --------------------------------- | -------------------- |
+| **API Root**     | `https://localhost:7230`          | Redirects to Swagger |
+| **API Swagger**  | `https://localhost:7230/swagger`  | API Documentation    |
+| **Health Check** | `https://localhost:7230/health`   | Health status        |
+| **Hangfire**     | `https://localhost:7230/hangfire` | Job dashboard        |
+| **Web App**      | `http://localhost:5279`           | Blazor Frontend      |
 
 ## 📚 API Endpoints
 
-| Method | Endpoint                 | Description               | Auth |
-| ------ | ------------------------ | ------------------------- | ---- |
-| POST   | `/api/Auth/Register`     | Create new user account   | No   |
-| POST   | `/api/Auth/Login`        | User login                | No   |
-| POST   | `/api/Auth/RefreshToken` | Refresh JWT token         | No   |
-| GET    | `/api/Users`             | Get all users (paginated) | Yes  |
+### Authentication
 
-## 🔐 Authentication Flow
+| Method | Endpoint                      | Description             | Auth |
+| ------ | ----------------------------- | ----------------------- | ---- |
+| POST   | `/api/v1/Auth/Register`       | Create new user account | No   |
+| POST   | `/api/v1/Auth/Login`          | User login              | No   |
+| POST   | `/api/v1/Auth/RefreshToken`   | Refresh JWT token       | No   |
+| POST   | `/api/v1/Auth/ForgotPassword` | Request password reset  | No   |
+| POST   | `/api/v1/Auth/ResetPassword`  | Reset with token        | No   |
+
+### Users
+
+| Method | Endpoint        | Description   | Auth |
+| ------ | --------------- | ------------- | ---- |
+| GET    | `/api/v1/Users` | Get all users | Yes  |
+| POST   | `/api/v1/Users` | Create user   | Yes  |
+
+## 🔐 Security Features
+
+### Authentication Flow
 
 1. User submits credentials on login page
-2. Web app sends request to API `/api/Auth/Login`
-3. API verifies credentials and generates JWT + Refresh Token
-4. Tokens are returned and stored in `ProtectedSessionStorage`
-5. `JwtAuthenticationStateProvider` manages auth state
-6. Protected routes check `AuthorizeRouteView` for access
+2. API verifies credentials and checks account lockout status
+3. JWT + Refresh Token generated and returned
+4. Tokens stored in encrypted session storage
+5. Refresh token rotation on each refresh request
+6. Account locks after 5 failed attempts (15 min lockout)
 
-### Security Features
+### Password Reset Flow
 
-- **Password Hashing**: BCrypt with salt
-- **JWT Signing**: HMAC-SHA256
-- **Token Storage**: Encrypted session storage
-- **Refresh Tokens**: Stored in database, 7-day validity
-- **Role-Based Access**: Users assigned "User" role on registration
-- **CORS**: Configured for web app origin
+1. User clicks "Forgot Password?" on login page
+2. Enters email → API generates secure reset token (1 hour expiry)
+3. Email sent with reset link
+4. User sets new password via `/reset-password` page
+
+### Security Measures
+
+| Feature              | Description                      |
+| -------------------- | -------------------------------- |
+| **Password Hashing** | BCrypt with salt                 |
+| **JWT Signing**      | HMAC-SHA256                      |
+| **Token Rotation**   | New refresh token on each use    |
+| **Account Lockout**  | 5 failures → 15 min lock         |
+| **Rate Limiting**    | Token bucket with sliding window |
+| **HSTS**             | Enabled in production            |
 
 ## ⚙️ Configuration
 
-### API (`api/Wanankucha.Api/appsettings.json`)
+### User Secrets (Development)
 
-```json
-{
-  "ConnectionStrings": {
-    "PostgreSQL": "Host=localhost;Port=5432;Database=WanankuchaDB;Username=postgres;Password=yourpassword"
-  },
-  "Token": {
-    "Audience": "your-audience",
-    "Issuer": "your-issuer",
-    "SecurityKey": "your-256-bit-secret-key",
-    "Expiration": 15
-  }
-}
+Sensitive values are stored in .NET User Secrets:
+
+```bash
+# View all secrets
+dotnet user-secrets list
+
+# Set a secret
+dotnet user-secrets set "Key:SubKey" "value"
 ```
 
-### Web (`web/Wanankucha.Web/appsettings.json`)
+### Environment Variables (Production)
 
-```json
-{
-  "ApiSettings": {
-    "BaseUrl": "https://localhost:5279/"
-  }
-}
+Use double underscores for nested keys:
+
+```bash
+export ConnectionStrings__PostgreSQL="Host=..."
+export Token__SecurityKey="..."
+export Smtp__Username="..."
+export Smtp__Password="..."
 ```
+
+See `.env.example` for all available variables.
 
 ## 📝 Logging
 
@@ -178,15 +205,13 @@ Serilog structured logging in both API and Web projects:
   - API: `logs/wanankucha-api-log-{date}.txt`
   - Web: `logs/wanankucha-web-log-{date}.txt`
 
-## 🔄 HTTP Resilience (Web)
+## 🔄 Background Jobs (Hangfire)
 
-The web app uses Polly for HTTP resilience:
+| Job                       | Schedule | Description                          |
+| ------------------------- | -------- | ------------------------------------ |
+| `CleanupExpiredTokensJob` | Hourly   | Removes expired refresh/reset tokens |
 
-| Policy              | Configuration                                    |
-| ------------------- | ------------------------------------------------ |
-| **Timeout**         | 30 seconds default                               |
-| **Retry**           | 3 attempts with exponential backoff (2s, 4s, 8s) |
-| **Circuit Breaker** | Opens after 5 failures, 30s recovery             |
+Dashboard: `https://localhost:7230/hangfire`
 
 ## 📄 License
 
