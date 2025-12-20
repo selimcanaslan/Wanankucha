@@ -34,7 +34,7 @@ public class LoginUserCommandHandler(
             logger.LogWarning("Login attempt for locked account {UserId}. Lockout ends in {Minutes} minutes", 
                 user.Id, remainingTime.TotalMinutes);
             return new ServiceResponse<Token>(
-                $"Account is locked. Please try again in {Math.Ceiling(remainingTime.TotalMinutes)} minutes.");
+                $"Account is locked due to too many failed attempts. Please try again in {Math.Ceiling(remainingTime.TotalMinutes)} minutes, or use 'Forgot Password' to reset your password.");
         }
 
         // Verify password

@@ -173,6 +173,86 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
         }
     }
 
+    public async Task<ApiResponse<string>> ForgotPasswordAsync(string email)
+    {
+        try
+        {
+            var request = new ForgotPasswordRequest { Email = email };
+            var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/ForgotPassword", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                return result ?? new ApiResponse<string>("Password reset email sent.") { Succeeded = true };
+            }
+            
+            // Handle rate limiting (429)
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<string>(message);
+            }
+            
+            try
+            {
+                var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                return errorResult ?? new ApiResponse<string>("Failed to send password reset email.");
+            }
+            catch
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<string>(string.IsNullOrEmpty(errorText) ? "Failed to send password reset email." : errorText);
+            }
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<string>($"Error: {ex.Message}");
+        }
+    }
+
+    public async Task<ApiResponse<string>> ResetPasswordAsync(string email, string token, string newPassword, string confirmPassword)
+    {
+        try
+        {
+            var request = new ResetPasswordRequest 
+            { 
+                Email = email, 
+                Token = token, 
+                NewPassword = newPassword, 
+                ConfirmPassword = confirmPassword 
+            };
+            var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/ResetPassword", request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                return result ?? new ApiResponse<string>("Password reset successfully.") { Succeeded = true };
+            }
+            
+            // Handle rate limiting (429)
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<string>(message);
+            }
+            
+            try
+            {
+                var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                return errorResult ?? new ApiResponse<string>("Failed to reset password.");
+            }
+            catch
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                return new ApiResponse<string>(string.IsNullOrEmpty(errorText) ? "Failed to reset password." : errorText);
+            }
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<string>($"Error: {ex.Message}");
+        }
+    }
+
     public async Task LogoutAsync()
     {
         await tokenStorage.ClearTokenAsync();

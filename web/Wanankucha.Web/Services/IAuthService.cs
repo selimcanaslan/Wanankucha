@@ -11,5 +11,7 @@ public interface IAuthService
     Task<ApiResponse<TokenDto>> LoginAsync(LoginRequest request);
     Task<ApiResponse<Guid>> RegisterAsync(RegisterRequest request);
     Task<ApiResponse<TokenDto>> RefreshTokenAsync(string refreshToken);
+    Task<ApiResponse<string>> ForgotPasswordAsync(string email);
+    Task<ApiResponse<string>> ResetPasswordAsync(string email, string token, string newPassword, string confirmPassword);
     Task LogoutAsync();
 }
