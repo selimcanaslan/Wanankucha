@@ -1,10 +1,13 @@
+using System.IO.Compression;
 using System.Text;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Hangfire;
+using Hangfire.Dashboard;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -45,6 +48,22 @@ try
     // Distributed Caching (In-Memory)
     // ========================
     builder.Services.AddDistributedMemoryCache();
+
+    // ========================
+    // Response Compression (Brotli + Gzip)
+    // ========================
+    builder.Services.AddResponseCompression(options =>
+    {
+        options.EnableForHttps = true;
+        options.Providers.Add<BrotliCompressionProvider>();
+        options.Providers.Add<GzipCompressionProvider>();
+        options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+            new[] { "application/json", "text/json" });
+    });
+    builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+        options.Level = CompressionLevel.Fastest);
+    builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+        options.Level = CompressionLevel.SmallestSize);
 
     // ========================
     // Response Caching (Output Cache)
@@ -112,14 +131,14 @@ try
             options.SubstituteApiVersionInUrl = true;
         });
 
-    // CORS for Blazor web app
+    // CORS for Blazor web app (tightened)
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("BlazorWebApp", policy =>
         {
             policy.WithOrigins("https://localhost:5001", "http://localhost:5279")
-                .AllowAnyMethod()
-                .AllowAnyHeader()
+                .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .WithHeaders("Content-Type", "Authorization", "X-Api-Version")
                 .AllowCredentials();
         });
     });
@@ -188,10 +207,18 @@ try
 
     app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
+    // Response Compression middleware (before static files)
+    app.UseResponseCompression();
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
         app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Wanankucha API v1"));
+    }
+    else
+    {
+        // HSTS (Strict Transport Security) - only in production
+        app.UseHsts();
     }
 
     app.UseHttpsRedirection();
@@ -212,8 +239,13 @@ try
     // Health check endpoint
     app.MapHealthChecks("/health");
 
-    // Hangfire dashboard
-    app.MapHangfireDashboard("/hangfire");
+    // Hangfire dashboard (secured - local access only in production)
+    app.MapHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = app.Environment.IsDevelopment() 
+            ? Array.Empty<IDashboardAuthorizationFilter>() 
+            : new[] { new LocalRequestsOnlyAuthorizationFilter() }
+    });
 
     // Register recurring jobs
     RecurringJob.AddOrUpdate<CleanupExpiredTokensJob>(
