@@ -266,7 +266,7 @@ try
         {
             return Results.Redirect("/swagger");
         }
-        
+
         return Results.Ok(new
         {
             Name = "Wanankucha API",
@@ -284,8 +284,8 @@ try
     // Hangfire dashboard (secured - local access only in production)
     app.MapHangfireDashboard("/hangfire", new DashboardOptions
     {
-        Authorization = app.Environment.IsDevelopment() 
-            ? Array.Empty<IDashboardAuthorizationFilter>() 
+        Authorization = app.Environment.IsDevelopment()
+            ? Array.Empty<IDashboardAuthorizationFilter>()
             : new[] { new LocalRequestsOnlyAuthorizationFilter() }
     });
 

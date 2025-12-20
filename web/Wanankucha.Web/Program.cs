@@ -15,7 +15,7 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((context, configuration) => 
+    builder.Host.UseSerilog((context, configuration) =>
         configuration.ReadFrom.Configuration(context.Configuration));
 
     // Add services to the container.
@@ -25,7 +25,7 @@ try
     // Configure HttpClient with resilience policies
     builder.Services.AddHttpClient("WanankuchaApi", client =>
     {
-        var baseUrl = builder.Configuration["ApiSettings:BaseUrl"] 
+        var baseUrl = builder.Configuration["ApiSettings:BaseUrl"]
             ?? throw new InvalidOperationException("ApiSettings:BaseUrl not configured");
         client.BaseAddress = new Uri(baseUrl);
         client.DefaultRequestHeaders.Add("Accept", "application/json");
@@ -34,10 +34,10 @@ try
     .AddPolicyHandler((serviceProvider, _) =>
     {
         var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("HttpClient.Resilience");
-        
+
         return HttpPolicyExtensions
             .HandleTransientHttpError() // Handles 5xx, 408, and network failures
-            .WaitAndRetryAsync(3, retryAttempt => 
+            .WaitAndRetryAsync(3, retryAttempt =>
                 TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential backoff: 2s, 4s, 8s
                 onRetry: (outcome, timespan, retryAttempt, _) =>
                 {
@@ -51,7 +51,7 @@ try
     .AddPolicyHandler((serviceProvider, _) =>
     {
         var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("HttpClient.Resilience");
-        
+
         return HttpPolicyExtensions
             .HandleTransientHttpError()
             .CircuitBreakerAsync(

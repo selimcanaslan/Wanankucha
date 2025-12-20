@@ -31,7 +31,7 @@ public class LoginUserCommandHandler(
         if (user.LockoutEnabled && user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.UtcNow)
         {
             var remainingTime = user.LockoutEnd.Value - DateTime.UtcNow;
-            logger.LogWarning("Login attempt for locked account {UserId}. Lockout ends in {Minutes} minutes", 
+            logger.LogWarning("Login attempt for locked account {UserId}. Lockout ends in {Minutes} minutes",
                 user.Id, remainingTime.TotalMinutes);
             return new ServiceResponse<Token>(
                 $"Account is locked due to too many failed attempts. Please try again in {Math.Ceiling(remainingTime.TotalMinutes)} minutes, or use 'Forgot Password' to reset your password.");
@@ -39,22 +39,22 @@ public class LoginUserCommandHandler(
 
         // Verify password
         var isPasswordValid = passwordHasher.VerifyPassword(request.Password, user.PasswordHash);
-        
+
         if (!isPasswordValid)
         {
             // Increment failed login attempts
             user.FailedLoginAttempts++;
-            
+
             if (user.LockoutEnabled && user.FailedLoginAttempts >= MaxFailedAttempts)
             {
                 user.LockoutEnd = DateTime.UtcNow.Add(LockoutDuration);
-                logger.LogWarning("Account {UserId} locked after {Attempts} failed attempts", 
+                logger.LogWarning("Account {UserId} locked after {Attempts} failed attempts",
                     user.Id, user.FailedLoginAttempts);
             }
-            
+
             userRepository.Update(user);
             await unitOfWork.SaveChangesAsync(cancellationToken);
-            
+
             return new ServiceResponse<Token>("Incorrect username or password");
         }
 
@@ -67,11 +67,11 @@ public class LoginUserCommandHandler(
 
         // Generate tokens
         var token = tokenService.CreateAccessToken(user);
-        
+
         // Update refresh token
         user.RefreshToken = token.RefreshToken;
         user.RefreshTokenEndDate = token.Expiration.AddDays(7);
-        
+
         userRepository.Update(user);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

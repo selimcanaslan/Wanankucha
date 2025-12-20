@@ -6,5 +6,5 @@ namespace Wanankucha.Api.Application.Features.Commands.AppUser.RefreshToken;
 
 public class RefreshTokenCommandRequest : IRequest<ServiceResponse<Token>>
 {
-    public string RefreshToken { get; set; }
+    public required string RefreshToken { get; set; }
 }

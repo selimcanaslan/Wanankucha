@@ -18,7 +18,7 @@ namespace Wanankucha.Api.Infrastructure.Options;
 public class SmtpOptions
 {
     public const string SectionName = "Smtp";
-    
+
     public string Host { get; set; } = "smtp.gmail.com";
     public int Port { get; set; } = 587;
     public string Username { get; set; } = string.Empty;
@@ -26,7 +26,7 @@ public class SmtpOptions
     public string FromEmail { get; set; } = "noreply@wanankucha.com";
     public string FromName { get; set; } = "Wanankucha";
     public bool EnableSsl { get; set; } = true;
-    
+
     /// <summary>
     /// Base URL for password reset links (e.g., https://localhost:5001)
     /// </summary>

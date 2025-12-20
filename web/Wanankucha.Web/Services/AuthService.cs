@@ -19,26 +19,26 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
         try
         {
             var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/Login", request);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
-                
+
                 if (result is { Succeeded: true, Data: not null })
                 {
                     await tokenStorage.SetTokenAsync(result.Data);
                 }
-                
+
                 return result ?? new ApiResponse<TokenDto>("Invalid response from server");
             }
-            
+
             // Handle rate limiting (429) - returns plain text, not JSON
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 var message = await response.Content.ReadAsStringAsync();
                 return new ApiResponse<TokenDto>(message);
             }
-            
+
             // Try to parse JSON error response
             try
             {
@@ -80,20 +80,20 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
         try
         {
             var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/Register", request);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiResponse<Guid>>();
                 return result ?? new ApiResponse<Guid>("Invalid response from server");
             }
-            
+
             // Handle rate limiting (429) - returns plain text, not JSON
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 var message = await response.Content.ReadAsStringAsync();
                 return new ApiResponse<Guid>(message);
             }
-            
+
             // Try to parse JSON error response
             try
             {
@@ -135,19 +135,19 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
         {
             var request = new RefreshTokenRequest { RefreshToken = refreshToken };
             var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/RefreshToken", request);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
-                
+
                 if (result?.Succeeded == true && result.Data != null)
                 {
                     await tokenStorage.SetTokenAsync(result.Data);
                 }
-                
+
                 return result ?? new ApiResponse<TokenDto>("Invalid response from server");
             }
-            
+
             var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<TokenDto>>();
             return errorResult ?? new ApiResponse<TokenDto>("Token refresh failed");
         }
@@ -179,20 +179,20 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
         {
             var request = new ForgotPasswordRequest { Email = email };
             var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/ForgotPassword", request);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
                 return result ?? new ApiResponse<string>("Password reset email sent.") { Succeeded = true };
             }
-            
+
             // Handle rate limiting (429)
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 var message = await response.Content.ReadAsStringAsync();
                 return new ApiResponse<string>(message);
             }
-            
+
             try
             {
                 var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
@@ -214,28 +214,28 @@ public class AuthService(IHttpClientFactory httpClientFactory, ITokenStorageServ
     {
         try
         {
-            var request = new ResetPasswordRequest 
-            { 
-                Email = email, 
-                Token = token, 
-                NewPassword = newPassword, 
-                ConfirmPassword = confirmPassword 
+            var request = new ResetPasswordRequest
+            {
+                Email = email,
+                Token = token,
+                NewPassword = newPassword,
+                ConfirmPassword = confirmPassword
             };
             var response = await _httpClient.PostAsJsonAsync("api/v1/Auth/ResetPassword", request);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();
                 return result ?? new ApiResponse<string>("Password reset successfully.") { Succeeded = true };
             }
-            
+
             // Handle rate limiting (429)
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 var message = await response.Content.ReadAsStringAsync();
                 return new ApiResponse<string>(message);
             }
-            
+
             try
             {
                 var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse<string>>();

@@ -45,7 +45,7 @@ public class UserService : IUserService
         };
 
         await _userRepository.AddAsync(user, cancellationToken);
-        
+
         // Get or create the default "User" role
         var defaultRole = await _userRepository.GetRoleByNameAsync("User", cancellationToken);
         if (defaultRole == null)
@@ -58,7 +58,7 @@ public class UserService : IUserService
             };
             await _userRepository.AddRoleAsync(defaultRole, cancellationToken);
         }
-        
+
         // Assign the default role to the user
         var userRole = new UserRole
         {
@@ -67,7 +67,7 @@ public class UserService : IUserService
             RoleId = defaultRole.Id
         };
         await _userRepository.AddUserRoleAsync(userRole, cancellationToken);
-        
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new ServiceResponse<Guid>(user.Id, "User created successfully.");
@@ -76,7 +76,7 @@ public class UserService : IUserService
     public async Task<UserDto?> FindByEmailOrUsernameAsync(string emailOrUsername, CancellationToken cancellationToken = default)
     {
         var normalized = emailOrUsername.ToUpperInvariant();
-        
+
         var user = await _userRepository.FindByEmailOrUsernameAsync(normalized, cancellationToken);
 
         return user == null ? null : MapToDto(user);

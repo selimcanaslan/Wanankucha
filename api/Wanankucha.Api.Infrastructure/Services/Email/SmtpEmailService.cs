@@ -21,7 +21,7 @@ public class SmtpEmailService : IEmailService
         _options = options.Value;
         _logger = logger;
         _isConfigured = !string.IsNullOrEmpty(_options.Username) && !string.IsNullOrEmpty(_options.Password);
-        
+
         if (!_isConfigured)
         {
             _logger.LogWarning("SMTP is not configured. Emails will be logged but not sent. " +
@@ -37,7 +37,7 @@ public class SmtpEmailService : IEmailService
                 "📧 EMAIL (not sent - SMTP not configured)\n" +
                 "   To: {To}\n" +
                 "   Subject: {Subject}\n" +
-                "   Body: {Body}", 
+                "   Body: {Body}",
                 to, subject, htmlBody);
             return;
         }
@@ -60,7 +60,7 @@ public class SmtpEmailService : IEmailService
             mailMessage.To.Add(to);
 
             await client.SendMailAsync(mailMessage, cancellationToken);
-            
+
             _logger.LogInformation("Email sent successfully to {To} with subject '{Subject}'", to, subject);
         }
         catch (Exception ex)
@@ -73,7 +73,7 @@ public class SmtpEmailService : IEmailService
     public async Task SendPasswordResetEmailAsync(string to, string resetToken, CancellationToken cancellationToken = default)
     {
         var resetUrl = $"{_options.WebAppBaseUrl}/reset-password?token={Uri.EscapeDataString(resetToken)}&email={Uri.EscapeDataString(to)}";
-        
+
         var subject = "Reset Your Password - Wanankucha";
         var htmlBody = $$"""
             <!DOCTYPE html>

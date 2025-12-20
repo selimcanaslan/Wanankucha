@@ -28,20 +28,20 @@ public class AuthController(IMediator mediator) : ControllerBase
 
         return BadRequest(response);
     }
-    
+
     [HttpPost("RefreshToken")]
     public async Task<IActionResult> RefreshToken(RefreshTokenCommandRequest request)
     {
         var response = await mediator.Send(request);
-    
+
         if (response.Succeeded)
         {
             return Ok(response);
         }
-    
+
         return BadRequest(response);
     }
-    
+
     [HttpPost("Register")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(CreateUserCommandRequest request)
@@ -55,7 +55,7 @@ public class AuthController(IMediator mediator) : ControllerBase
 
         return BadRequest(response);
     }
-    
+
     [HttpPost("ForgotPassword")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordCommandRequest request)
@@ -63,7 +63,7 @@ public class AuthController(IMediator mediator) : ControllerBase
         var response = await mediator.Send(request);
         return Ok(response); // Always return OK to prevent email enumeration
     }
-    
+
     [HttpPost("ResetPassword")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> ResetPassword(ResetPasswordCommandRequest request)

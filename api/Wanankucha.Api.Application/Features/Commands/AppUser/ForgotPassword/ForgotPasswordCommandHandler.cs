@@ -47,7 +47,7 @@ public class ForgotPasswordCommandHandler(
             logger.LogError(ex, "Failed to send password reset email to user {UserId}", user.Id);
             // Don't fail the request - token is saved, user can retry
         }
-        
+
         return new ServiceResponse<string>("If the email exists, a password reset link has been sent.")
         {
             Succeeded = true

@@ -11,25 +11,25 @@ public class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TReque
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var requestName = typeof(TRequest).Name;
-        
+
         logger.LogInformation("Handling {RequestName}", requestName);
-        
+
         var stopwatch = Stopwatch.StartNew();
-        
+
         try
         {
             var response = await next(cancellationToken);
-            
+
             stopwatch.Stop();
-            logger.LogInformation("Handled {RequestName} in {ElapsedMilliseconds}ms", 
+            logger.LogInformation("Handled {RequestName} in {ElapsedMilliseconds}ms",
                 requestName, stopwatch.ElapsedMilliseconds);
-            
+
             return response;
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            logger.LogError(ex, "Error handling {RequestName} after {ElapsedMilliseconds}ms", 
+            logger.LogError(ex, "Error handling {RequestName} after {ElapsedMilliseconds}ms",
                 requestName, stopwatch.ElapsedMilliseconds);
             throw;
         }

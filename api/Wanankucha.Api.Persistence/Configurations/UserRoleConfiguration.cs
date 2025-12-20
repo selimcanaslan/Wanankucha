@@ -9,9 +9,9 @@ public class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
     public void Configure(EntityTypeBuilder<UserRole> builder)
     {
         builder.HasKey(e => e.Id);
-        
+
         builder.HasIndex(e => new { e.UserId, e.RoleId }).IsUnique();
-        
+
         builder.HasOne(ur => ur.User)
             .WithMany(u => u.UserRoles)
             .HasForeignKey(ur => ur.UserId)
@@ -21,7 +21,7 @@ public class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
             .WithMany(r => r.UserRoles)
             .HasForeignKey(ur => ur.RoleId)
             .OnDelete(DeleteBehavior.Cascade);
-        
+
         // Soft delete query filter
         builder.HasQueryFilter(e => !e.IsDeleted);
     }

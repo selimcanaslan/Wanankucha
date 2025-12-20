@@ -10,6 +10,6 @@ public interface IWriteRepository<T> : IRepository<T> where T : class, IEntity, 
     bool Remove(T model);
     bool RemoveRange(List<T> datas);
     Task<bool> RemoveAsync(Guid id, CancellationToken cancellationToken = default);
-    
+
     bool Update(T model);
 }

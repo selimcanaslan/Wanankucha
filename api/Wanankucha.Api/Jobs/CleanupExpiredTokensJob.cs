@@ -12,7 +12,7 @@ public class CleanupExpiredTokensJob(
     public async Task ExecuteAsync()
     {
         logger.LogInformation("Starting expired tokens cleanup job");
-        
+
         var now = DateTime.UtcNow;
         var expiredPasswordResetCount = 0;
         var expiredRefreshTokenCount = 0;

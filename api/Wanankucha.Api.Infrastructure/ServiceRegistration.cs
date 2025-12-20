@@ -14,7 +14,7 @@ public static class ServiceRegistration
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
-        
+
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IEmailService, SmtpEmailService>();

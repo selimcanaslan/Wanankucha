@@ -9,7 +9,7 @@ public interface IEmailService
     /// Sends an email asynchronously
     /// </summary>
     Task SendEmailAsync(string to, string subject, string htmlBody, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     /// Sends a password reset email with the reset link
     /// </summary>

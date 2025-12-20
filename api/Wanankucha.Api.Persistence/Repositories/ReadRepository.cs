@@ -37,9 +37,9 @@ public class ReadRepository<T>(AppDbContext context) : IReadRepository<T> where 
     public async Task<T?> GetByIdAsync(Guid id, bool tracking = true, CancellationToken cancellationToken = default)
     {
         var query = Table.AsQueryable();
-        if(!tracking)
+        if (!tracking)
             query = query.AsNoTracking();
-                
+
         return await query.FirstOrDefaultAsync(data => EF.Property<Guid>(data, "Id") == id, cancellationToken);
     }
 }

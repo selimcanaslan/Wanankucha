@@ -31,7 +31,7 @@ public class RefreshTokenCommandHandler(
         // Update refresh token (rotation)
         user.RefreshToken = token.RefreshToken;
         user.RefreshTokenEndDate = token.Expiration.AddDays(7);
-        
+
         userRepository.Update(user);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

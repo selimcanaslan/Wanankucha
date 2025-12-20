@@ -51,7 +51,7 @@ public class ResetPasswordCommandHandler(
         user.PasswordHash = passwordHasher.HashPassword(request.NewPassword);
         user.PasswordResetToken = null;
         user.PasswordResetTokenExpiry = null;
-        
+
         // Invalidate refresh tokens for security
         user.RefreshToken = null;
         user.RefreshTokenEndDate = null;

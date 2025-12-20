@@ -9,11 +9,11 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
     public void Configure(EntityTypeBuilder<Role> builder)
     {
         builder.HasKey(e => e.Id);
-        
+
         builder.HasIndex(e => e.NormalizedName).IsUnique();
-        
+
         builder.Property(e => e.Name).HasMaxLength(256);
-        
+
         // Soft delete query filter
         builder.HasQueryFilter(e => !e.IsDeleted);
     }
