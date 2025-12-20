@@ -259,6 +259,25 @@ try
 
     app.MapControllers();
 
+    // Root endpoint - redirect to Swagger or show API info
+    app.MapGet("/", (IWebHostEnvironment env) =>
+    {
+        if (env.IsDevelopment())
+        {
+            return Results.Redirect("/swagger");
+        }
+        
+        return Results.Ok(new
+        {
+            Name = "Wanankucha API",
+            Version = "1.0",
+            Status = "Running",
+            Documentation = "/swagger",
+            HealthCheck = "/health",
+            Dashboard = "/hangfire"
+        });
+    }).ExcludeFromDescription();
+
     // Health check endpoint
     app.MapHealthChecks("/health");
 
