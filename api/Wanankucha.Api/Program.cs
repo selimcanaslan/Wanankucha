@@ -1,9 +1,13 @@
+using DotNetEnv;
 using Serilog;
 using Wanankucha.Api.Application;
 using Wanankucha.Api.Extensions;
 using Wanankucha.Api.Infrastructure;
 using Wanankucha.Api.Jobs;
 using Wanankucha.Api.Persistence;
+
+// Load .env file (if exists) before anything else
+Env.TraversePath().Load();
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
