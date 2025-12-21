@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacksConfig]
+providers = ["dotnet"]
+
+[deploy]
+startCommand = "dotnet Wanankucha.Api.dll"
