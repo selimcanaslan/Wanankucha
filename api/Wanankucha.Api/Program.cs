@@ -18,6 +18,9 @@ Log.Information("Starting Wanankucha API...");
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    
+    // Explicitly add environment variables to ensure Railway variables override appsettings.json
+    builder.Configuration.AddEnvironmentVariables();
 
     // ========================
     // Serilog
