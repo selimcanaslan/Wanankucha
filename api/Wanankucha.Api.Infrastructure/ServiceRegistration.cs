@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Resend;
 using Wanankucha.Api.Application.Abstractions;
 using Wanankucha.Api.Infrastructure.Options;
 using Wanankucha.Api.Infrastructure.Services.Email;
@@ -17,6 +18,24 @@ public static class ServiceRegistration
 
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
-        services.AddScoped<IEmailService, SmtpEmailService>();
+        
+        // Email service: Use Resend if API key starts with "re_", otherwise use SMTP
+        var smtpPassword = configuration["Smtp:Password"] ?? "";
+        if (smtpPassword.StartsWith("re_"))
+        {
+            // Configure Resend HTTP client
+            services.AddOptions();
+            services.AddHttpClient<ResendClient>();
+            services.Configure<ResendClientOptions>(options =>
+            {
+                options.ApiToken = smtpPassword;
+            });
+            services.AddTransient<IResend, ResendClient>();
+            services.AddScoped<IEmailService, ResendEmailService>();
+        }
+        else
+        {
+            services.AddScoped<IEmailService, SmtpEmailService>();
+        }
     }
 }
