@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.Dashboard;
+using Microsoft.EntityFrameworkCore;
 using Wanankucha.Api.Jobs;
 using Wanankucha.Api.Middlewares;
 using Wanankucha.Api.Persistence.Contexts;
