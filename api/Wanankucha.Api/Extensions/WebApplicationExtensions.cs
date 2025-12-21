@@ -23,11 +23,23 @@ public static class WebApplicationExtensions
         
         try
         {
+            // Debug: Check direct environment variable
+            var envConnString = Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL");
+            Serilog.Log.Information("Direct ENV ConnectionStrings__PostgreSQL: {Exists}, Length: {Length}", 
+                !string.IsNullOrEmpty(envConnString), envConnString?.Length ?? 0);
+            
             var connString = config.GetConnectionString("PostgreSQL");
             Serilog.Log.Information("Checking database connectivity...");
-            Serilog.Log.Information("Connection string length: {Length}", connString?.Length ?? 0);
+            Serilog.Log.Information("Config connection string length: {Length}", connString?.Length ?? 0);
             Serilog.Log.Information("Connection string starts with: {Start}", 
                 connString?.Substring(0, Math.Min(50, connString?.Length ?? 0)) ?? "null");
+            
+            // If env var exists but config doesn't have it, use env var directly
+            if (!string.IsNullOrEmpty(envConnString) && (connString?.Contains("localhost") ?? true))
+            {
+                Serilog.Log.Warning("Using direct environment variable instead of config");
+                connString = envConnString;
+            }
             
             // Try to execute a simple query to get the actual error
             await dbContext.Database.ExecuteSqlRawAsync("SELECT 1");
