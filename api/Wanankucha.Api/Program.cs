@@ -21,6 +21,22 @@ try
     
     // Explicitly add environment variables to ensure Railway variables override appsettings.json
     builder.Configuration.AddEnvironmentVariables();
+    
+    // Workaround: Check for DATABASE_URL environment variable (Railway standard)
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrEmpty(databaseUrl))
+    {
+        Log.Information("Found DATABASE_URL environment variable, using it for database connection");
+        builder.Configuration["ConnectionStrings:PostgreSQL"] = databaseUrl;
+    }
+    
+    // Also check for ConnectionStrings__PostgreSQL directly
+    var connStringEnv = Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL");
+    if (!string.IsNullOrEmpty(connStringEnv))
+    {
+        Log.Information("Found ConnectionStrings__PostgreSQL environment variable");
+        builder.Configuration["ConnectionStrings:PostgreSQL"] = connStringEnv;
+    }
 
     // ========================
     // Serilog
