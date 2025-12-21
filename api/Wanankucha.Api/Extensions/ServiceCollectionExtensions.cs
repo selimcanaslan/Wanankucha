@@ -146,13 +146,22 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Add CORS policy for Blazor web app
     /// </summary>
-    public static IServiceCollection AddCorsServices(this IServiceCollection services)
+    public static IServiceCollection AddCorsServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // Get allowed origins from configuration or use defaults
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] 
+            { 
+                "https://localhost:5001", 
+                "http://localhost:5279",
+                "https://wanankucha-web-production.up.railway.app"
+            };
+        
         services.AddCors(options =>
         {
             options.AddPolicy("BlazorWebApp", policy =>
             {
-                policy.WithOrigins("https://localhost:5001", "http://localhost:5279")
+                policy.WithOrigins(allowedOrigins)
                     .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .WithHeaders("Content-Type", "Authorization", "X-Api-Version")
                     .AllowCredentials();

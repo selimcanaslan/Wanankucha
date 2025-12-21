@@ -47,7 +47,7 @@ try
 
     // Security
     builder.Services.AddRateLimitingServices();
-    builder.Services.AddCorsServices();
+    builder.Services.AddCorsServices(builder.Configuration);
     builder.Services.AddJwtAuthentication(builder.Configuration);
 
     // API Features
