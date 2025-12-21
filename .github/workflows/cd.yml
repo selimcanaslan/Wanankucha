@@ -1,0 +1,94 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+env:
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build API for production
+        run: dotnet publish api/Wanankucha.Api -c Release -o ./publish/api
+
+      - name: Build Web for production
+        run: dotnet publish web/Wanankucha.Web -c Release -o ./publish/web
+
+      - name: Create .env file for production
+        run: |
+          cat > ./publish/api/.env << EOF
+          ConnectionStrings__PostgreSQL=${{ secrets.PROD_DATABASE_URL }}
+          Token__SecurityKey=${{ secrets.PROD_JWT_KEY }}
+          Token__Issuer=Iss
+          Token__Audience=Aud
+          Token__Expiration=15
+          Smtp__Host=smtp.gmail.com
+          Smtp__Port=587
+          Smtp__Username=selimcanaslan33@gmail.com
+          Smtp__Password=${{ secrets.PROD_SMTP_PASSWORD }}
+          Smtp__FromEmail=selimcanaslan33@gmail.com
+          Smtp__FromName=Wanankucha
+          Smtp__EnableSsl=true
+          Smtp__WebAppBaseUrl=https://your-production-domain.com
+          ASPNETCORE_ENVIRONMENT=Production
+          EOF
+
+      - name: Upload API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wanankucha-api
+          path: ./publish/api
+          retention-days: 30
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wanankucha-web
+          path: ./publish/web
+          retention-days: 30
+
+  # Uncomment and configure when ready to deploy to SoMee or other host
+  # deploy:
+  #   name: Deploy to Production
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - name: Download API artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: wanankucha-api
+  #         path: ./publish
+  #
+  #     - name: Deploy via FTP (SoMee)
+  #       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+  #       with:
+  #         server: ftp.somee.com
+  #         username: ${{ secrets.FTP_USERNAME }}
+  #         password: ${{ secrets.FTP_PASSWORD }}
+  #         local-dir: ./publish/
