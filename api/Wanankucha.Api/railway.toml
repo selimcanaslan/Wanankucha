@@ -1,9 +1,0 @@
-[build]
-builder = "nixpacks"
-
-[build.nixpacksConfig]
-providers = ["dotnet"]
-aptPkgs = ["...", "dotnet-sdk-8.0"]
-
-[deploy]
-startCommand = "dotnet Wanankucha.Api.dll"

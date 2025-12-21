@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/.vs
+**/node_modules
+**/.git
+**/.idea
+**/logs
+**/.env
+**/*.user
+**/appsettings.Development.json
