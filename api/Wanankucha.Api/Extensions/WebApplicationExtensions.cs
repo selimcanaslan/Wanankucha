@@ -19,15 +19,26 @@ public static class WebApplicationExtensions
         using var scope = app.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
-        Serilog.Log.Information("Checking database connectivity...");
-        var canConnect = await dbContext.Database.CanConnectAsync();
-        
-        if (!canConnect)
+        try
         {
-            throw new Exception("Cannot connect to PostgreSQL database. Please ensure the database is running.");
+            Serilog.Log.Information("Checking database connectivity...");
+            Serilog.Log.Information("Connection string configured: {HasConnectionString}", 
+                !string.IsNullOrEmpty(app.Configuration.GetConnectionString("PostgreSQL")));
+            
+            var canConnect = await dbContext.Database.CanConnectAsync();
+            
+            if (!canConnect)
+            {
+                throw new Exception("CanConnectAsync returned false");
+            }
+            
+            Serilog.Log.Information("Database connection verified successfully");
         }
-        
-        Serilog.Log.Information("Database connection verified successfully");
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Database connection failed: {Message}", ex.Message);
+            throw new Exception($"Cannot connect to PostgreSQL: {ex.Message}", ex);
+        }
     }
 
     /// <summary>
