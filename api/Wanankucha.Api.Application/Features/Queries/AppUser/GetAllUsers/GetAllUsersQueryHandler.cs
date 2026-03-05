@@ -1,13 +1,13 @@
 using MediatR;
 using Wanankucha.Api.Application.Abstractions;
-using Wanankucha.Api.Application.Wrappers;
+using Wanankucha.Api.Domain.Common;
 
 namespace Wanankucha.Api.Application.Features.Queries.AppUser.GetAllUsers;
 
 public class GetAllUsersQueryHandler(IUserService userService)
-    : IRequestHandler<GetAllUsersQueryRequest, ServiceResponse<List<GetAllUsersQueryResponse>>>
+    : IRequestHandler<GetAllUsersQueryRequest, Result<List<GetAllUsersQueryResponse>>>
 {
-    public async Task<ServiceResponse<List<GetAllUsersQueryResponse>>> Handle(GetAllUsersQueryRequest request, CancellationToken cancellationToken)
+    public async Task<Result<List<GetAllUsersQueryResponse>>> Handle(GetAllUsersQueryRequest request, CancellationToken cancellationToken)
     {
         var pagination = request.Pagination ?? new RequestParameters.Pagination();
         var users = await userService.GetAllUsersAsync(pagination.Page, pagination.Size, cancellationToken);
@@ -20,6 +20,6 @@ public class GetAllUsersQueryHandler(IUserService userService)
             UserName = user.UserName ?? string.Empty
         }).ToList();
 
-        return new ServiceResponse<List<GetAllUsersQueryResponse>>(response);
+        return Result<List<GetAllUsersQueryResponse>>.Success(response);
     }
 }

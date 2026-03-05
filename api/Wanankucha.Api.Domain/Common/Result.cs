@@ -8,10 +8,10 @@ public record Result<T>
 {
     public bool IsSuccess { get; init; }
     public T? Value { get; init; }
-    public string? Error { get; init; }
-    public IReadOnlyList<string> Errors { get; init; } = [];
+    public Error? Error { get; init; }
+    public IReadOnlyList<Error> Errors { get; init; } = [];
 
-    private Result(bool isSuccess, T? value, string? error, IReadOnlyList<string>? errors = null)
+    private Result(bool isSuccess, T? value, Error? error, IReadOnlyList<Error>? errors = null)
     {
         IsSuccess = isSuccess;
         Value = value;
@@ -21,16 +21,13 @@ public record Result<T>
 
     public static Result<T> Success(T value) => new(true, value, null);
 
-    public static Result<T> Failure(string error) => new(false, default, error);
+    public static Result<T> Failure(Error error) => new(false, default, error);
 
-    public static Result<T> Failure(IEnumerable<string> errors)
+    public static Result<T> Failure(IEnumerable<Error> errors)
     {
         var errorList = errors.ToList();
-        return new(false, default, errorList.FirstOrDefault(), errorList);
+        return new(false, default, errorList.FirstOrDefault() ?? Common.Error.None, errorList);
     }
-
-    public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<string, TResult> onFailure)
-        => IsSuccess ? onSuccess(Value!) : onFailure(Error ?? "Unknown error");
 }
 
 /// <summary>
@@ -39,10 +36,10 @@ public record Result<T>
 public record Result
 {
     public bool IsSuccess { get; init; }
-    public string? Error { get; init; }
-    public IReadOnlyList<string> Errors { get; init; } = [];
+    public Error? Error { get; init; }
+    public IReadOnlyList<Error> Errors { get; init; } = [];
 
-    private Result(bool isSuccess, string? error, IReadOnlyList<string>? errors = null)
+    private Result(bool isSuccess, Error? error, IReadOnlyList<Error>? errors = null)
     {
         IsSuccess = isSuccess;
         Error = error;
@@ -51,11 +48,12 @@ public record Result
 
     public static Result Success() => new(true, null);
 
-    public static Result Failure(string error) => new(false, error);
+    public static Result Failure(Error error) => new(false, error);
 
-    public static Result Failure(IEnumerable<string> errors)
+    public static Result Failure(IEnumerable<Error> errors)
     {
         var errorList = errors.ToList();
-        return new(false, errorList.FirstOrDefault(), errorList);
+        return new(false, errorList.FirstOrDefault() ?? Common.Error.None, errorList);
     }
 }
+

@@ -13,33 +13,21 @@ namespace Wanankucha.Api.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [ApiVersion("1.0")]
-public class AuthController(IMediator mediator) : ControllerBase
+public class AuthController(IMediator mediator) : BaseController
 {
     [HttpPost("Login")]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(LoginUserCommandRequest request)
     {
         var response = await mediator.Send(request);
-
-        if (response.Succeeded)
-        {
-            return Ok(response);
-        }
-
-        return BadRequest(response);
+        return HandleResult(response);
     }
 
     [HttpPost("RefreshToken")]
     public async Task<IActionResult> RefreshToken(RefreshTokenCommandRequest request)
     {
         var response = await mediator.Send(request);
-
-        if (response.Succeeded)
-        {
-            return Ok(response);
-        }
-
-        return BadRequest(response);
+        return HandleResult(response);
     }
 
     [HttpPost("Register")]
@@ -47,13 +35,7 @@ public class AuthController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Register(CreateUserCommandRequest request)
     {
         var response = await mediator.Send(request);
-
-        if (response.Succeeded)
-        {
-            return Ok(response);
-        }
-
-        return BadRequest(response);
+        return HandleResult(response);
     }
 
     [HttpPost("ForgotPassword")]
@@ -69,12 +51,6 @@ public class AuthController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> ResetPassword(ResetPasswordCommandRequest request)
     {
         var response = await mediator.Send(request);
-
-        if (response.Succeeded)
-        {
-            return Ok(response);
-        }
-
-        return BadRequest(response);
+        return HandleResult(response);
     }
 }

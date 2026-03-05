@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using FluentValidation;
-using Wanankucha.Api.Application.Wrappers;
+using Wanankucha.Api.Domain.Common;
 
 namespace Wanankucha.Api.Middlewares;
 
@@ -25,22 +25,28 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<Glob
         context.Response.ContentType = "application/json";
 
         var statusCode = (int)HttpStatusCode.InternalServerError;
-        var response = new ServiceResponse<string>(error.Message)
-        {
-            Succeeded = false
-        };
+        var errorList = new List<Error>();
 
         switch (error)
         {
+            case Application.Exceptions.NotFoundException notFoundException:
+                statusCode = (int)HttpStatusCode.NotFound;
+                errorList.Add(Error.NotFound("Record.NotFound", notFoundException.Message));
+                break;
+            case Domain.Exceptions.DomainException domainException:
+                statusCode = (int)HttpStatusCode.Conflict;
+                errorList.Add(Error.Conflict("Domain.RuleViolation", domainException.Message));
+                break;
             case ValidationException validationException:
                 statusCode = (int)HttpStatusCode.BadRequest;
-                response.Errors = validationException.Errors.Select(x => x.ErrorMessage).ToList();
-                response.Message = "Validation Error";
+                errorList.AddRange(validationException.Errors.Select(x => Error.Validation("Validation.Error", x.ErrorMessage)));
                 break;
             default:
-                response.Message = "Internal Server Error";
+                errorList.Add(Error.Failure("Internal.Error", "Internal Server Error"));
                 break;
         }
+
+        var response = Result<string>.Failure(errorList);
 
         context.Response.StatusCode = statusCode;
 

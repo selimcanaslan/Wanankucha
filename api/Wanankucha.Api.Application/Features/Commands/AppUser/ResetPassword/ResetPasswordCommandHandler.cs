@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Wanankucha.Api.Application.Abstractions;
-using Wanankucha.Api.Application.Wrappers;
+using Wanankucha.Api.Domain.Common;
 using Wanankucha.Api.Domain.Repositories;
 
 namespace Wanankucha.Api.Application.Features.Commands.AppUser.ResetPassword;
@@ -11,9 +11,9 @@ public class ResetPasswordCommandHandler(
     IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,
     ILogger<ResetPasswordCommandHandler> logger)
-    : IRequestHandler<ResetPasswordCommandRequest, ServiceResponse<string>>
+    : IRequestHandler<ResetPasswordCommandRequest, Result<string>>
 {
-    public async Task<ServiceResponse<string>> Handle(ResetPasswordCommandRequest request, CancellationToken cancellationToken)
+    public async Task<Result<string>> Handle(ResetPasswordCommandRequest request, CancellationToken cancellationToken)
     {
         var normalizedEmail = request.Email.ToUpperInvariant();
         var user = await userRepository.FindByEmailAsync(normalizedEmail, cancellationToken);
@@ -21,49 +21,25 @@ public class ResetPasswordCommandHandler(
         if (user == null)
         {
             logger.LogWarning("Password reset attempted for non-existent email: {Email}", request.Email);
-            return new ServiceResponse<string>("Invalid or expired reset token.")
-            {
-                Succeeded = false
-            };
+            return Result<string>.Failure(Error.NotFound("User.NotFound", "User not found"));
         }
 
-        // Validate token
-        if (user.PasswordResetToken != request.Token)
+        // Domain method validates the token and its expiry
+        if (!user.IsPasswordResetTokenValid(request.Token))
         {
-            logger.LogWarning("Invalid password reset token for user {UserId}", user.Id);
-            return new ServiceResponse<string>("Invalid or expired reset token.")
-            {
-                Succeeded = false
-            };
+            logger.LogWarning("Invalid or expired password reset token for user {UserId}", user.Id);
+            return Result<string>.Failure(Error.Conflict("Token.Invalid", "Invalid or expired password reset token."));
         }
 
-        // Check token expiry
-        if (user.PasswordResetTokenExpiry == null || user.PasswordResetTokenExpiry < DateTime.UtcNow)
-        {
-            logger.LogWarning("Expired password reset token for user {UserId}", user.Id);
-            return new ServiceResponse<string>("Invalid or expired reset token.")
-            {
-                Succeeded = false
-            };
-        }
-
-        // Update password
-        user.PasswordHash = passwordHasher.HashPassword(request.NewPassword);
-        user.PasswordResetToken = null;
-        user.PasswordResetTokenExpiry = null;
-
-        // Invalidate refresh tokens for security
-        user.RefreshToken = null;
-        user.RefreshTokenEndDate = null;
+        // Update password via domain method
+        user.SetPassword(passwordHasher.HashPassword(request.NewPassword));
+        user.ClearPasswordResetToken();
+        user.RevokeRefreshToken(); // Invalidate sessions for security
 
         userRepository.Update(user);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Password successfully reset for user {UserId}", user.Id);
-
-        return new ServiceResponse<string>("Password has been reset successfully. Please log in with your new password.")
-        {
-            Succeeded = true
-        };
+        return Result<string>.Success("Password has been reset successfully. Please log in with your new password.");
     }
 }

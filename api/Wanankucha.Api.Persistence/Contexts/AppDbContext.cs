@@ -1,11 +1,19 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Wanankucha.Api.Domain.Common;
 using Wanankucha.Api.Domain.Entities;
 
 namespace Wanankucha.Api.Persistence.Contexts;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    private readonly IMediator _mediator;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, IMediator mediator) : base(options)
+    {
+        _mediator = mediator;
+    }
+
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
@@ -25,21 +33,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var data = ChangeTracker.Entries<BaseEntity<Guid>>();
+        // Get all entities with domain events
+        var entitiesWithEvents = ChangeTracker.Entries<IEntity>()
+            .Where(e => e.Entity.GetType().GetProperty("DomainEvents") != null)
+            .Select(e => e.Entity)
+            .ToList();
 
-        foreach (var d in data)
+        var domainEvents = new List<IDomainEvent>();
+
+        foreach (var entity in entitiesWithEvents)
         {
-            switch (d.State)
+            var property = entity.GetType().GetProperty("DomainEvents");
+            if (property == null) continue;
+
+            var events = property.GetValue(entity) as IReadOnlyList<IDomainEvent>;
+            if (events != null && events.Any())
             {
-                case EntityState.Added:
-                    d.Entity.CreatedDate = DateTime.UtcNow;
-                    break;
-                case EntityState.Modified:
-                    d.Entity.UpdatedDate = DateTime.UtcNow;
-                    break;
+                domainEvents.AddRange(events);
+                
+                // Clear the events so they aren't processed again
+                var clearMethod = entity.GetType().GetMethod("ClearDomainEvents");
+                clearMethod?.Invoke(entity, null);
             }
         }
 
-        return await base.SaveChangesAsync(cancellationToken);
+        // Save changes to the database
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        // Publish all domain events AFTER saving to the database
+        foreach (var domainEvent in domainEvents)
+        {
+            await _mediator.Publish(domainEvent, cancellationToken);
+        }
+
+        return result;
     }
 }

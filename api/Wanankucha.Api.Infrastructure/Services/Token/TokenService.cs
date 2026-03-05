@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Wanankucha.Api.Application.Abstractions;
 using Wanankucha.Api.Application.DTOs;
-using Wanankucha.Api.Domain.Entities;
 using Wanankucha.Api.Infrastructure.Options;
 
 namespace Wanankucha.Api.Infrastructure.Services.Token;
@@ -20,13 +19,13 @@ public class TokenService : ITokenService
         _jwtOptions = jwtOptions.Value;
     }
 
-    public Application.DTOs.Token CreateAccessToken(User user)
+    public Application.DTOs.Token CreateAccessToken(UserTokenData userData)
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName ?? ""),
-            new Claim(ClaimTypes.Email, user.Email ?? "")
+            new Claim(ClaimTypes.NameIdentifier, userData.Id.ToString()),
+            new Claim(ClaimTypes.Name, userData.UserName),
+            new Claim(ClaimTypes.Email, userData.Email)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecurityKey));

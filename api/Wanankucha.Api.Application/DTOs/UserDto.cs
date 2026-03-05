@@ -1,5 +1,9 @@
 namespace Wanankucha.Api.Application.DTOs;
 
+/// <summary>
+/// Internal DTO used for authentication and token operations.
+/// Contains sensitive token fields — do NOT expose this directly in list endpoints.
+/// </summary>
 public class UserDto
 {
     public Guid Id { get; set; }

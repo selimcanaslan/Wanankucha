@@ -1,6 +1,6 @@
 using Wanankucha.Api.Application.Abstractions;
 using Wanankucha.Api.Application.DTOs;
-using Wanankucha.Api.Application.Wrappers;
+using Wanankucha.Api.Domain.Common;
 using Wanankucha.Api.Domain.Entities;
 using Wanankucha.Api.Domain.Repositories;
 
@@ -9,121 +9,110 @@ namespace Wanankucha.Api.Application.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
 
-    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
+    public UserService(
+        IUserRepository userRepository,
+        IRoleRepository roleRepository,
+        IUnitOfWork unitOfWork,
+        IPasswordHasher passwordHasher)
     {
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
     }
 
-    public async Task<ServiceResponse<Guid>> CreateUserAsync(string nameSurname, string email, string userName, string password, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> CreateUserAsync(
+        string nameSurname, string email, string userName, string password,
+        CancellationToken cancellationToken = default)
     {
         var normalizedEmail = email.ToUpperInvariant();
         if (await _userRepository.ExistsWithEmailAsync(normalizedEmail, cancellationToken))
-        {
-            return new ServiceResponse<Guid>("A user with this email already exists.");
-        }
+            return Result<Guid>.Failure(Error.Conflict("User.DuplicateEmail", "A user with this email already exists."));
 
         var normalizedUserName = userName.ToUpperInvariant();
         if (await _userRepository.ExistsWithUsernameAsync(normalizedUserName, cancellationToken))
-        {
-            return new ServiceResponse<Guid>("A user with this username already exists.");
-        }
+            return Result<Guid>.Failure(Error.Conflict("User.DuplicateUsername", "A user with this username already exists."));
 
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            UserName = userName,
-            NormalizedUserName = normalizedUserName,
-            Email = email,
-            NormalizedEmail = normalizedEmail,
-            NameSurname = nameSurname,
-            PasswordHash = _passwordHasher.HashPassword(password)
-        };
+        var user = User.Create(nameSurname, email, userName, _passwordHasher.HashPassword(password));
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        // Get or create the default "User" role
-        var defaultRole = await _userRepository.GetRoleByNameAsync("User", cancellationToken);
+        // Assign default "User" role
+        var defaultRole = await _roleRepository.GetByNameAsync("USER", cancellationToken);
         if (defaultRole == null)
         {
-            defaultRole = new Role
-            {
-                Id = Guid.NewGuid(),
-                Name = "User",
-                NormalizedName = "USER"
-            };
-            await _userRepository.AddRoleAsync(defaultRole, cancellationToken);
+            defaultRole = Role.Create("User");
+            await _roleRepository.AddAsync(defaultRole, cancellationToken);
         }
 
-        // Assign the default role to the user
-        var userRole = new UserRole
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            RoleId = defaultRole.Id
-        };
-        await _userRepository.AddUserRoleAsync(userRole, cancellationToken);
+        await _roleRepository.AddUserRoleAsync(
+            UserRole.Create(user.Id, defaultRole.Id),
+            cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new ServiceResponse<Guid>(user.Id, "User created successfully.");
+        return Result<Guid>.Success(user.Id);
     }
 
-    public async Task<UserDto?> FindByEmailOrUsernameAsync(string emailOrUsername, CancellationToken cancellationToken = default)
+    public async Task<UserDto?> FindByEmailOrUsernameAsync(
+        string emailOrUsername, CancellationToken cancellationToken = default)
     {
-        var normalized = emailOrUsername.ToUpperInvariant();
-
-        var user = await _userRepository.FindByEmailOrUsernameAsync(normalized, cancellationToken);
-
+        var user = await _userRepository.FindByEmailOrUsernameAsync(emailOrUsername.ToUpperInvariant(), cancellationToken);
         return user == null ? null : MapToDto(user);
     }
 
-    public async Task<bool> CheckPasswordAsync(Guid userId, string password, CancellationToken cancellationToken = default)
+    public async Task<bool> CheckPasswordAsync(
+        Guid userId, string password, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
         if (user == null) return false;
-
         return _passwordHasher.VerifyPassword(password, user.PasswordHash);
     }
 
-    public async Task<IEnumerable<UserDto>> GetAllUsersAsync(int page, int size, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<UserListItemDto>> GetAllUsersAsync(
+        int page, int size, CancellationToken cancellationToken = default)
     {
         var users = await _userRepository.GetAllAsync(page, size, cancellationToken);
-
-        return users.Select(MapToDto);
+        return users.Select(u => new UserListItemDto
+        {
+            Id = u.Id,
+            Email = u.Email,
+            UserName = u.UserName,
+            NameSurname = u.NameSurname
+        });
     }
 
-    public async Task UpdateRefreshTokenAsync(Guid userId, string refreshToken, DateTime endDate, CancellationToken cancellationToken = default)
+    public async Task UpdateRefreshTokenAsync(
+        Guid userId, string refreshToken, DateTime endDate, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
         if (user == null) return;
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenEndDate = endDate;
+        user.SetRefreshToken(refreshToken, endDate);
+        _userRepository.Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<UserDto?> FindByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public async Task<UserDto?> FindByRefreshTokenAsync(
+        string refreshToken, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.FindByRefreshTokenAsync(refreshToken, cancellationToken);
-
         return user == null ? null : MapToDto(user);
     }
 
-    private static UserDto MapToDto(User user)
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    private static UserDto MapToDto(User user) => new()
     {
-        return new UserDto
-        {
-            Id = user.Id,
-            Email = user.Email,
-            UserName = user.UserName,
-            NameSurname = user.NameSurname,
-            RefreshToken = user.RefreshToken,
-            RefreshTokenEndDate = user.RefreshTokenEndDate
-        };
-    }
+        Id = user.Id,
+        Email = user.Email,
+        UserName = user.UserName,
+        NameSurname = user.NameSurname,
+        RefreshToken = user.RefreshToken,
+        RefreshTokenEndDate = user.RefreshTokenEndDate
+    };
 }

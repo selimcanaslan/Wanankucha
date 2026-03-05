@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Wanankucha.Api.Application.Abstractions;
 using Wanankucha.Api.Application.DTOs;
-using Wanankucha.Api.Application.Wrappers;
+using Wanankucha.Api.Domain.Common;
 using Wanankucha.Api.Domain.Repositories;
 
 namespace Wanankucha.Api.Application.Features.Commands.AppUser.LoginUser;
@@ -13,69 +13,50 @@ public class LoginUserCommandHandler(
     ITokenService tokenService,
     IUnitOfWork unitOfWork,
     ILogger<LoginUserCommandHandler> logger)
-    : IRequestHandler<LoginUserCommandRequest, ServiceResponse<Token>>
+    : IRequestHandler<LoginUserCommandRequest, Result<Token>>
 {
-    private const int MaxFailedAttempts = 5;
-    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
-
-    public async Task<ServiceResponse<Token>> Handle(LoginUserCommandRequest request,
-        CancellationToken cancellationToken)
+    public async Task<Result<Token>> Handle(LoginUserCommandRequest request, CancellationToken cancellationToken)
     {
         var normalized = request.EmailOrUserName.ToUpperInvariant();
         var user = await userRepository.FindByEmailOrUsernameAsync(normalized, cancellationToken);
 
         if (user == null)
-            return new ServiceResponse<Token>("Incorrect username or password");
+            return Result<Token>.Failure(Error.NotFound("User.NotFound", "Incorrect username or password"));
 
-        // Check if account is locked
-        if (user.LockoutEnabled && user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.UtcNow)
+        // Check if account is locked — business rule lives on the entity
+        if (user.IsLockedOut())
         {
-            var remainingTime = user.LockoutEnd.Value - DateTime.UtcNow;
+            var remaining = user.LockoutEnd!.Value - DateTime.UtcNow;
             logger.LogWarning("Login attempt for locked account {UserId}. Lockout ends in {Minutes} minutes",
-                user.Id, remainingTime.TotalMinutes);
-            return new ServiceResponse<Token>(
-                $"Account is locked due to too many failed attempts. Please try again in {Math.Ceiling(remainingTime.TotalMinutes)} minutes, or use 'Forgot Password' to reset your password.");
+                user.Id, remaining.TotalMinutes);
+            return Result<Token>.Failure(Error.Conflict("User.LockedOut",
+                $"Account is locked. Please try again in {Math.Ceiling(remaining.TotalMinutes)} minutes, or use 'Forgot Password'."));
         }
 
         // Verify password
-        var isPasswordValid = passwordHasher.VerifyPassword(request.Password, user.PasswordHash);
-
-        if (!isPasswordValid)
+        if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
         {
-            // Increment failed login attempts
-            user.FailedLoginAttempts++;
-
-            if (user.LockoutEnabled && user.FailedLoginAttempts >= MaxFailedAttempts)
-            {
-                user.LockoutEnd = DateTime.UtcNow.Add(LockoutDuration);
-                logger.LogWarning("Account {UserId} locked after {Attempts} failed attempts",
-                    user.Id, user.FailedLoginAttempts);
-            }
-
+            user.RecordFailedLogin(); // domain method
             userRepository.Update(user);
             await unitOfWork.SaveChangesAsync(cancellationToken);
-
-            return new ServiceResponse<Token>("Incorrect username or password");
+            return Result<Token>.Failure(Error.NotFound("User.NotFound", "Incorrect username or password"));
         }
 
         // Reset failed attempts on successful login
         if (user.FailedLoginAttempts > 0 || user.LockoutEnd.HasValue)
-        {
-            user.FailedLoginAttempts = 0;
-            user.LockoutEnd = null;
-        }
+            user.ResetLoginAttempts(); // domain method
 
-        // Generate tokens
-        var token = tokenService.CreateAccessToken(user);
+        // Generate tokens — pass DTO, not entity
+        var tokenData = new UserTokenData(user.Id, user.UserName, user.Email);
+        var token = tokenService.CreateAccessToken(tokenData);
 
-        // Update refresh token
-        user.RefreshToken = token.RefreshToken;
-        user.RefreshTokenEndDate = token.Expiration.AddDays(7);
+        // Update refresh token via domain method
+        user.SetRefreshToken(token.RefreshToken, token.Expiration.AddDays(7));
 
         userRepository.Update(user);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("User {UserId} logged in successfully", user.Id);
-        return new ServiceResponse<Token>(token, "Authentication successful");
+        return Result<Token>.Success(token);
     }
 }

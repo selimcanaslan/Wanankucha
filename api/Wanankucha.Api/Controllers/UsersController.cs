@@ -11,19 +11,13 @@ namespace Wanankucha.Api.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [ApiVersion("1.0")]
-public class UsersController(IMediator mediator) : ControllerBase
+public class UsersController(IMediator mediator) : BaseController
 {
     [HttpPost]
     public async Task<IActionResult> CreateUser(CreateUserCommandRequest request)
     {
         var response = await mediator.Send(request);
-
-        if (response.Succeeded)
-        {
-            return Ok(response);
-        }
-
-        return BadRequest(response);
+        return HandleResult(response);
     }
 
     [Authorize]
@@ -32,6 +26,6 @@ public class UsersController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetAllUsers([FromQuery] GetAllUsersQueryRequest request)
     {
         var response = await mediator.Send(request);
-        return Ok(response);
+        return HandleResult(response);
     }
 }

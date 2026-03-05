@@ -3,7 +3,7 @@ using Wanankucha.Api.Persistence.Contexts;
 namespace Wanankucha.Api.Jobs;
 
 /// <summary>
-/// Background job to clean up expired password reset tokens and refresh tokens
+/// Background job to clean up expired password reset tokens and refresh tokens.
 /// </summary>
 public class CleanupExpiredTokensJob(
     AppDbContext context,
@@ -24,8 +24,7 @@ public class CleanupExpiredTokensJob(
 
         foreach (var user in usersWithExpiredResetTokens)
         {
-            user.PasswordResetToken = null;
-            user.PasswordResetTokenExpiry = null;
+            user.ClearPasswordResetToken(); // domain method — no direct mutation
             expiredPasswordResetCount++;
         }
 
@@ -36,8 +35,7 @@ public class CleanupExpiredTokensJob(
 
         foreach (var user in usersWithExpiredRefreshTokens)
         {
-            user.RefreshToken = null;
-            user.RefreshTokenEndDate = null;
+            user.RevokeRefreshToken(); // domain method — no direct mutation
             expiredRefreshTokenCount++;
         }
 

@@ -19,7 +19,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(e => e.PasswordResetToken);
 
         builder.Property(e => e.UserName).HasMaxLength(256);
-        builder.Property(e => e.Email).HasMaxLength(256);
+        
+        builder.Property(e => e.Email)
+            .HasConversion(
+                v => v.Value,
+                v => Wanankucha.Api.Domain.ValueObjects.Email.Create(v))
+            .HasMaxLength(256);
 
         // Soft delete query filter
         builder.HasQueryFilter(e => !e.IsDeleted);

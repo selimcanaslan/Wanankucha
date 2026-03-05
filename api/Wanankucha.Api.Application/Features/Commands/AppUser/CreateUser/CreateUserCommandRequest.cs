@@ -1,9 +1,9 @@
 using MediatR;
-using Wanankucha.Api.Application.Wrappers;
+using Wanankucha.Api.Domain.Common;
 
 namespace Wanankucha.Api.Application.Features.Commands.AppUser.CreateUser;
 
-public class CreateUserCommandRequest : IRequest<ServiceResponse<Guid>>
+public class CreateUserCommandRequest : IRequest<Result<Guid>>
 {
     public required string NameSurname { get; set; }
     public required string Email { get; set; }
