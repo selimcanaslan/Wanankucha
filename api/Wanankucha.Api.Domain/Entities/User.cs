@@ -54,7 +54,7 @@ public class User : Common.BaseEntity<Guid>
     // Required by EF Core
     private User() { }
 
-    // ─── Domain Behaviours ──────────────────────────────────────────────────────
+    // ─── Domain Behaviours ─────────────────────────────────────────────────────
 
     public bool IsLockedOut()
         => LockoutEnabled && LockoutEnd.HasValue && LockoutEnd > DateTime.UtcNow;
@@ -65,7 +65,7 @@ public class User : Common.BaseEntity<Guid>
         if (LockoutEnabled && FailedLoginAttempts >= MaxFailedAttempts)
         {
             LockoutEnd = DateTime.UtcNow.Add(LockoutDuration);
-            AddDomainEvent(new Wanankucha.Api.Domain.Events.UserLockedOutDomainEvent(Id, Email));
+            AddDomainEvent(new Events.UserLockedOutDomainEvent(Id, Email));
         }
     }
 
